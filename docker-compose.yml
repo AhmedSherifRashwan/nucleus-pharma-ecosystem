@@ -1,0 +1,22 @@
+# PRD v3.0 s29.1. Docker is not available on the current build machine, so the
+# documented local alternative is Homebrew PostgreSQL 17 (see decisions.md D-002).
+# Nothing in the application depends on which you use.
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: pharma_ai
+      POSTGRES_USER: ai
+      POSTGRES_PASSWORD: change-me
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai -d pharma_ai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:

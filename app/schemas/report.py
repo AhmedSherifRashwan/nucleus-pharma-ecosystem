@@ -44,6 +44,34 @@ class ReportTable(StrictModel):
     rows: list[list[str]] = Field(default_factory=list)
     note: str | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def _square_the_rows(cls, data: object) -> object:
+        """Make every row the width of the header.
+
+        A ragged row is a formatting slip, not a reason to lose the section it
+        sits in - which is what rejecting the table used to cost. A short row is
+        padded; a long one has its surplus folded into the final cell, so no
+        content is dropped on the way to the page.
+        """
+        if not isinstance(data, dict):
+            return data
+        columns = data.get("columns") or []
+        rows = data.get("rows") or []
+        width = len(columns)
+        if not width or not isinstance(rows, list):
+            return data
+
+        squared: list[list[str]] = []
+        for row in rows:
+            cells = [str(c) for c in row] if isinstance(row, list) else [str(row)]
+            if len(cells) < width:
+                cells = cells + ["—"] * (width - len(cells))
+            elif len(cells) > width:
+                cells = cells[: width - 1] + [" ".join(cells[width - 1 :])]
+            squared.append(cells)
+        return {**data, "rows": squared}
+
     @model_validator(mode="after")
     def _rows_match_columns(self) -> ReportTable:
         width = len(self.columns)

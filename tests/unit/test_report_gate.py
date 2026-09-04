@@ -241,3 +241,31 @@ def test_a_pdf_that_was_requested_but_not_rendered_is_noted():
     result = gate(report(), pdf_expected=True, pdf_rendered=False)
     check = named(result, "pdf_rendered")
     assert check.passed is False and check.mandatory is False
+
+
+# -- table shape -------------------------------------------------------------
+
+
+def test_a_short_row_is_padded_rather_than_losing_the_table():
+    """A ragged row cost whole sections of composed content before this."""
+    from app.schemas.report import ReportTable
+
+    table = ReportTable(columns=["Attribute", "Target", "Status"], rows=[["Assay", "95-105%"]])
+    assert table.rows == [["Assay", "95-105%", "—"]]
+
+
+def test_a_long_row_keeps_its_surplus_in_the_last_cell():
+    from app.schemas.report import ReportTable
+
+    table = ReportTable(
+        columns=["Attribute", "Target"],
+        rows=[["Dissolution", "Q=75% at 45 min", "USP <711>"]],
+    )
+    assert table.rows == [["Dissolution", "Q=75% at 45 min USP <711>"]]
+
+
+def test_a_squared_table_still_validates():
+    from app.schemas.report import ReportTable
+
+    table = ReportTable(columns=["A", "B", "C"], rows=[["1"], ["1", "2", "3", "4"]])
+    assert all(len(row) == 3 for row in table.rows)

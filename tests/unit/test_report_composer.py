@@ -238,3 +238,101 @@ async def test_the_composer_is_never_told_who_did_what():
     for name, prompt in client.prompts.items():
         assert "task_id" not in prompt, name
         assert "execution order" not in prompt, name
+
+
+# -- status handling ---------------------------------------------------------
+
+
+def test_a_written_status_is_coded_without_losing_the_wording():
+    from app.reports.composer import normalise_status
+
+    code, note = normalise_status(
+        "Partially confirmed: FDA guidance retrieved, EU applicability unverified."
+    )
+    assert code == "unverified"
+    assert "EU applicability" in note
+
+
+def test_a_mixed_status_codes_to_the_weaker_claim():
+    """A section that is part established and part provisional is provisional."""
+    from app.reports.composer import normalise_status
+
+    code, note = normalise_status("Established mechanism; provisional numeric limits.")
+    assert code == "provisional"
+    assert note
+
+
+def test_a_plain_code_needs_no_note():
+    from app.reports.composer import normalise_status
+
+    assert normalise_status("provisional") == ("provisional", None)
+    assert normalise_status(None) == (None, None)
+
+
+@pytest.mark.asyncio
+async def test_a_section_with_a_written_status_is_kept_not_rejected():
+    """Rejecting the section over its status field threw away real content."""
+
+    class WrittenStatus(StubClient):
+        async def complete_structured(self, *, route, system, user, schema, **kw):
+            if schema.__name__ == "SectionDraft":
+                self.prompts.setdefault("SectionDraft", "")
+                self.prompts["SectionDraft"] += user
+                return (
+                    schema.model_validate(
+                        {
+                            **SECTION,
+                            "status": "Mixed: established basis, provisional limits.",
+                            "subsections": [
+                                {
+                                    "heading": "Sub",
+                                    "body": "Text.",
+                                    "tables": [],
+                                    "subsections": [],
+                                    "evidence_refs": [],
+                                    "status": "Screening-level only.",
+                                }
+                            ],
+                        }
+                    ),
+                    Usage(),
+                    None,
+                )
+            return await super().complete_structured(
+                route=route, system=system, user=user, schema=schema, **kw
+            )
+
+    outcome = await compose_report(context(), client=WrittenStatus())
+
+    assert len(outcome.report.body_sections) == 3
+    section = outcome.report.body_sections[0]
+    assert section.status == "provisional"
+    assert "established basis" in section.status_note
+    assert section.subsections[0].status == "screening"
+
+
+@pytest.mark.asyncio
+async def test_a_transient_gateway_state_is_retried_once(monkeypatch):
+    from app.providers.openclaw_client import GatewayTransientError
+    from app.reports import composer as composer_mod
+
+    monkeypatch.setattr(composer_mod, "RETRY_DELAY_SECONDS", 0)
+
+    class FlakyOnce(StubClient):
+        def __init__(self):
+            super().__init__()
+            self.failed = False
+
+        async def complete_structured(self, *, route, system, user, schema, **kw):
+            if schema.__name__ == "ReportOutline" and not self.failed:
+                self.failed = True
+                raise GatewayTransientError("agent turn status=in_flight: ")
+            return await super().complete_structured(
+                route=route, system=system, user=user, schema=schema, **kw
+            )
+
+    client = FlakyOnce()
+    outcome = await compose_report(context(), client=client)
+
+    assert client.failed is True
+    assert outcome.report.body_sections

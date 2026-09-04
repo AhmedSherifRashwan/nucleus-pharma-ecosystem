@@ -29,6 +29,7 @@ from app.audit.logger import get_logger
 from app.providers.openclaw_client import (
     AgentRoute,
     GatewayError,
+    GatewayTransientError,
     OpenClawClient,
     Usage,
     get_gateway_client,
@@ -54,6 +55,7 @@ log = get_logger(__name__)
 # Enough to cut the wall clock without stampeding the gateway or the provider's
 # rate limit. Observed: a section takes 1-4 minutes against report-length material.
 MAX_PARALLEL_SECTIONS = 4
+RETRY_DELAY_SECONDS = 8
 
 COMPOSER_SYSTEM = (
     "You are the senior technical writer for a pharmaceutical development team, "
@@ -143,15 +145,30 @@ async def _call[T: BaseModel](
     key: str,
     session_key: str,
 ) -> tuple[T, Usage]:
-    parsed, usage, _route = await client.complete_structured(
-        route=AgentRoute.EXECUTIVE,
-        system=COMPOSER_SYSTEM,
-        user=user,
-        schema=schema,
-        idempotency_key=key,
-        session_key=session_key,
-    )
-    return parsed, usage
+    """One composition call, with a single retry on a transient gateway state.
+
+    A turn left in flight by an earlier client, or a session still settling, is a
+    condition that clears on its own. Losing a composed section to it would be
+    losing real work.
+    """
+    total = Usage()
+    for attempt in range(2):
+        try:
+            parsed, usage, _route = await client.complete_structured(
+                route=AgentRoute.EXECUTIVE,
+                system=COMPOSER_SYSTEM,
+                user=user,
+                schema=schema,
+                idempotency_key=f"{key}-t{attempt}",
+                session_key=f"{session_key}-t{attempt}",
+            )
+            return parsed, total + usage
+        except GatewayTransientError as exc:
+            if attempt == 1:
+                raise
+            log.info("composer_retry", schema=schema.__name__, error=str(exc)[:120])
+            await asyncio.sleep(RETRY_DELAY_SECONDS)
+    raise AssertionError("unreachable")
 
 
 async def compose_outline(
@@ -196,18 +213,64 @@ async def compose_outline(
     return known_refs_only(outline, available), usage
 
 
+STATUS_CODES = ("confirmed", "provisional", "proposed", "screening", "unverified")
+
+# Order matters: the weaker claim wins. A section that is "established in part,
+# provisional in part" is provisional, because that is what a reader must act on.
+STATUS_KEYWORDS: tuple[tuple[str, str], ...] = (
+    ("unverified", "unverified"),
+    ("not retrieved", "unverified"),
+    ("unretrieved", "unverified"),
+    ("screening", "screening"),
+    ("provisional", "provisional"),
+    ("proposed", "proposed"),
+    ("mixed", "provisional"),
+    ("partially", "provisional"),
+    ("established", "confirmed"),
+    ("confirmed", "confirmed"),
+)
+
+
+def normalise_status(value: str | None) -> tuple[str | None, str | None]:
+    """Map a written status onto a code, keeping the original wording.
+
+    The composer writes sentences here - "established mechanism, provisional
+    limits" - because that is the truthful answer. Rejecting the section over it
+    threw away the content; coding it and keeping the sentence keeps both.
+    """
+    if not value:
+        return None, None
+    text = value.strip()
+    lowered = text.lower()
+    if lowered in STATUS_CODES:
+        return lowered, None
+    for needle, code in STATUS_KEYWORDS:
+        if needle in lowered:
+            return code, text[:400]
+    return None, text[:400]
+
+
+def _normalise_node(node: dict) -> dict:
+    code, note = normalise_status(node.get("status"))
+    node = {**node, "status": code}
+    if note and not node.get("status_note"):
+        node["status_note"] = note
+    node["subsections"] = [_normalise_node(child) for child in (node.get("subsections") or [])]
+    return node
+
+
 def _to_section(draft: SectionDraft) -> ReportSection:
     return ReportSection.model_validate(
-        {
-            "heading": draft.heading,
-            "body": draft.body,
-            "tables": draft.tables,
-            "subsections": draft.subsections,
-            "evidence_refs": draft.evidence_refs,
-            "status": draft.status
-            if draft.status in ("confirmed", "provisional", "proposed", "screening", "unverified")
-            else None,
-        }
+        _normalise_node(
+            {
+                "heading": draft.heading,
+                "body": draft.body,
+                "tables": draft.tables,
+                "subsections": draft.subsections,
+                "evidence_refs": draft.evidence_refs,
+                "status": draft.status,
+            }
+        )
     )
 
 
@@ -470,7 +533,9 @@ async def compose_report(
     context.__dict__["_composed_headings"] = [s.heading for s in sections]
 
     try:
-        closing, usage = await compose_closing(context, client, session_key, key_prefix)
+        closing, usage = await compose_closing(
+            context, client, f"{session_key}-closing", key_prefix
+        )
         total = total + usage
     except (GatewayError, ValueError) as exc:
         warnings.append(f"The closing matter could not be composed: {exc}")

@@ -65,6 +65,11 @@ class ReportSection(StrictModel):
     # Evidence ids supporting this section, rendered as a citation line.
     evidence_refs: list[str] = Field(default_factory=list)
     status: ClaimStatus | None = None
+    # The writer's own words about the section's standing, kept verbatim. A
+    # section is rarely uniformly confirmed or provisional, and flattening
+    # "established mechanism, provisional limits" to one code loses the part a
+    # reader needs.
+    status_note: str | None = Field(default=None, max_length=400)
 
     def walk(self) -> list[tuple[int, ReportSection]]:
         """This section and its descendants, with depth (0 for self)."""

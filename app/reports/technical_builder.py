@@ -153,10 +153,10 @@ class TechnicalReportRenderer:
 
     def _section(self, doc: DocxDocument, section: ReportSection, level: int, number: str) -> None:
         doc.add_heading(f"{number} {section.heading}", level=min(level, 4))
-        if section.status:
-            self._para(
-                doc, f"Status: {STATUS_LABEL.get(section.status, section.status)}", italic=True
-            )
+        if section.status or section.status_note:
+            label = STATUS_LABEL.get(section.status or "", section.status or "")
+            note = f" — {section.status_note}" if section.status_note else ""
+            self._para(doc, f"Status: {label}{note}".strip(" —"), italic=True)
         self._body(doc, section.body)
         for table in section.tables:
             self._report_table(doc, table)

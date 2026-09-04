@@ -10,14 +10,14 @@
 | 3 | OpenClaw Client: gateway transport, routing, error normalisation | **Complete** |
 | 4 | Executive Planner: prompt, structured parsing, deterministic validator | **Complete** |
 | 5 | Generic Specialist Runtime: envelope, prompt composition, evidence enforcement | **Mostly complete** — tool skills outstanding |
-| 6 | LangGraph Core | Not started |
-| 7 | Parallel Specialists | Not started |
-| 8 | Challenge and Conflict | Not started |
+| 6 | LangGraph Core: all §8 states, PostgresSaver, human gates | **Complete** |
+| 7 | Parallel Specialists | **Complete** — covered by the Phase 6 dispatcher |
+| 8 | Challenge and Conflict | **Complete** — conflict detection, challenge, bounded follow-ups |
 | 9 | OpenClaw Pharma Skill | Not started |
 | 10 | Worker Service | Not started |
 | 11 | Slack Delivery | Not started |
 | 12 | Reports (DOCX/PDF) | Not started |
-| 13 | Human Decisions | Not started |
+| 13 | Human Decisions | **Mostly complete** — both gates in the graph; Slack UX pending |
 | 14 | Expand to 16 Profiles | Not started |
 | 15 | Production Hardening | Not started |
 
@@ -189,6 +189,34 @@ under pressure rather than in principle.
 **Outstanding in Phase 5:** the six §19 tools are declared in the envelope but not
 yet callable — the skill wrappers that let a specialist invoke `project_search`,
 `save_evidence` and the rest are still to build (D-013).
+
+## Phase 6 — delivered (with 7, 8 and most of 13)
+
+Every §8 state is implemented and wired, with durable Postgres checkpointing.
+
+`INTAKE → LOAD_PROJECT_CONTEXT → OPENAI_PLAN → VALIDATE_PLAN → [PLAN_APPROVAL] →
+DISPATCH → COLLECT → CONFLICT_DETECTION → [CHALLENGE → FOLLOW_UP_TASKS] →
+SYNTHESIS → QUALITY_GATE → [HUMAN_DECISION] → PERSIST_FINAL_STATE`
+
+- `state.py`: §8.1 run state with reducers, so parallel branches merge safely.
+- `conflict.py`: deterministic signals computed from the record — declared
+  conflicts, escalations, incomplete tasks, unevidenced claims, low confidence.
+- `challenge.py`: adversarial review; follow-ups pass the same policy gate as a plan.
+- `synthesis.py`: the brief, plus `enforce_integrity` and the seven-check quality gate.
+- `graph.py`: 17 nodes with both human gates as LangGraph interrupts.
+- `engine.py`: `AsyncPostgresSaver`, and a resume that continues from the last
+  checkpoint when the graph is not actually paused.
+
+**Verified by test (14 graph cases, all first-run):**
+- Four specialists: three in parallel, then the dependent governance review.
+- A dependent specialist receives its dependencies' summaries, marked as fallible.
+- A failed specialist forces `review_required` — the brief cannot read as clean.
+- An invalid plan or a provisional agent fails **before anything is dispatched**.
+- Plan approval pauses with zero specialist calls made; approve resumes, decline cancels.
+- A RED recommendation blocks completion until a human answers, and the decision is recorded.
+- A material contradiction omitted from the brief is reinstated by the platform.
+- The follow-up round is bounded: exactly one challenge, never a loop.
+- **A run resumes on a fresh graph instance sharing the checkpoint store** (FR-016).
 
 ## Next
 

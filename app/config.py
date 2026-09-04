@@ -63,6 +63,10 @@ class Settings(BaseSettings):
     default_max_runtime_seconds: int = Field(default=1200, ge=60)
 
     # ---- Artifacts and reports (s18, s32) ----------------------------------
+    # Report composition is long-form writing, not an orchestration decision, and
+    # it is the most token-hungry stage in a run. Routing it to the specialist
+    # agent spreads load across the two subscriptions when one is near its limit.
+    report_composer_route: Literal["executive", "specialist"] = "executive"
     artifact_storage: Literal["local", "s3"] = "local"
     artifact_local_path: str = "./data/artifacts"
     report_template: str = "./templates/pharma_report_template.docx"

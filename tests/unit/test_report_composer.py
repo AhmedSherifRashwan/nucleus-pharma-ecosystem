@@ -336,3 +336,24 @@ async def test_a_transient_gateway_state_is_retried_once(monkeypatch):
 
     assert client.failed is True
     assert outcome.report.body_sections
+
+
+@pytest.mark.asyncio
+async def test_the_composer_route_is_configurable(monkeypatch):
+    """Composition is writing, so either agent can do it — and on a deployment
+    where one subscription is near its limit, that choice keeps runs completing."""
+    from app.config import get_settings
+    from app.providers.openclaw_client import AgentRoute
+    from app.reports.composer import composer_route
+
+    try:
+        monkeypatch.setenv("REPORT_COMPOSER_ROUTE", "specialist")
+        get_settings.cache_clear()
+        assert composer_route() is AgentRoute.SPECIALIST
+
+        # The executive agent is the default: the switch is a deployment choice.
+        monkeypatch.delenv("REPORT_COMPOSER_ROUTE")
+        get_settings.cache_clear()
+        assert composer_route() is AgentRoute.EXECUTIVE
+    finally:
+        get_settings.cache_clear()

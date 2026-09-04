@@ -26,6 +26,7 @@ from datetime import UTC, datetime
 from pydantic import BaseModel
 
 from app.audit.logger import get_logger
+from app.config import get_settings
 from app.providers.openclaw_client import (
     AgentRoute,
     GatewayError,
@@ -137,6 +138,18 @@ def _evidence_index(context: FinalReportContext) -> str:
     return "\n".join(lines) or "(no evidence recorded)"
 
 
+def composer_route() -> AgentRoute:
+    """Which agent writes the report (s7.3).
+
+    Composition is long-form writing rather than an orchestration decision, so
+    either route can do it. It is also the most token-hungry stage in a run: on a
+    deployment where one subscription is near its limit, moving the writing to the
+    other keeps runs completing.
+    """
+    configured = get_settings().report_composer_route
+    return AgentRoute.SPECIALIST if configured == "specialist" else AgentRoute.EXECUTIVE
+
+
 async def _call[T: BaseModel](
     client: OpenClawClient,
     schema: type[T],
@@ -155,7 +168,7 @@ async def _call[T: BaseModel](
     for attempt in range(2):
         try:
             parsed, usage, _route = await client.complete_structured(
-                route=AgentRoute.EXECUTIVE,
+                route=composer_route(),
                 system=COMPOSER_SYSTEM,
                 user=user,
                 schema=schema,
@@ -499,7 +512,9 @@ async def compose_report(
     # refuses the new call with `in_flight` until that turn settles.
     nonce = uuid.uuid4().hex[:8]
     key_prefix = f"{context.run_ref}:v{report_version}:report:{nonce}"
-    session_key = f"agent:pharma-executive:{context.run_ref}-report-v{report_version}-{nonce}"
+    session_key = (
+        f"agent:{composer_route().value}:{context.run_ref}-report-v{report_version}-{nonce}"
+    )
     warnings: list[str] = []
     total = Usage()
 

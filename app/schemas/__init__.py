@@ -1,5 +1,6 @@
 """Typed contracts for every LLM and gateway boundary (PRD s41.1 rule 1)."""
 
+from app.schemas.agent import AgentProfile, EscalationPolicy, ProfileRoute, ProfileStatus
 from app.schemas.common import (
     DECISION_CLASS_RULES,
     RELIABILITY_DESCRIPTIONS,
@@ -36,18 +37,22 @@ __all__ = [
     "DECISION_CLASS_RULES",
     "RELIABILITY_DESCRIPTIONS",
     "AgentMessage",
+    "AgentProfile",
     "ChallengeResult",
     "ConfidenceLevel",
     "ConflictOrQuestion",
     "Contradiction",
     "DecisionClass",
     "DecisionRequired",
+    "EscalationPolicy",
     "EvidenceRef",
     "ExecutiveDecisionBrief",
     "Finding",
     "FindingBasis",
     "OutputType",
     "Plan",
+    "ProfileRoute",
+    "ProfileStatus",
     "PlannedTask",
     "QualityGateCheck",
     "QualityGateResult",

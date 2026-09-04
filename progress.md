@@ -5,7 +5,7 @@
 | Phase | Milestone | Status |
 |-------|-----------|--------|
 | 0 | Foundation: repo, settings, logging, models/migrations, schemas, gateway skeleton, diagnostics | **Complete** |
-| 1 | Agent Registry: A01–A16 YAML, validation, prompt versions, seed | Not started |
+| 1 | Agent Registry: A01–A16 YAML, validation, prompt versions, seed | **Complete** |
 | 2 | PostgreSQL Run Model: repositories and idempotency | Partial — tables and constraints exist; repositories pending |
 | 3 | OpenClaw Client: live `/v1/responses` transport | **Blocked on D-001** |
 | 4 | OpenAI Planner | Not started |
@@ -50,8 +50,37 @@
 - The gateway transport fails closed and the health check does not claim reachability it lacks (§2).
 - Requests name a logical OpenClaw agent, never a provider model (§2 model abstraction).
 
+## Phase 1 — delivered
+
+**Gates:** ruff clean · mypy clean (23 source files) · 85 tests passing.
+
+- `app/schemas/agent.py`: versioned `AgentProfile` carrying `status`, `source_sds`,
+  the §12.1 `common_follow_on` routing, tool allowlist, knowledge scopes, forbidden
+  actions and escalation policy.
+- `app/agents/definitions/`: all 16 profiles. A01–A14 derived from their named
+  client SDS; A15/A16 provisional with no source document.
+- `app/prompts/workers/`: shared prompt (naming the ecosystem **Neucleus**) plus 16
+  domain prompts.
+- `app/agents/registry.py`: loader that fails closed on an unknown tool, an AMBER/RED
+  tool, an unknown knowledge scope, a missing prompt, an active profile with no
+  `source_sds`, or an unknown follow-on agent.
+- `scripts/seed_agents.py`: idempotent seeding of profiles and prompt versions;
+  refuses to proceed if a released prompt changed without a version bump.
+
+**Verified by test:**
+- All 16 load; only A15/A16 are provisional and they are disabled by default.
+- Every active profile names its SDS, and that file exists in the repo.
+- No profile holds an AMBER/RED tool, and no tool falls outside the §19 table.
+- The §12.1 routing matrix matches the PRD and drops disabled agents.
+- Every prompt composes with no placeholders, names Neucleus, states the
+  untrusted-data boundary and carries the evidence-basis rule.
+- Seeding is idempotent, snapshots the whole profile, and refuses released-prompt drift.
+
 ## Next
 
-Phase 1 (Agent Registry) is unblocked and does not need the gateway.
-Phase 3 needs D-001 closed first: OpenClaw onboarded, Slack plugin installed, and the
-real `/v1/responses` contract confirmed.
+Phase 2 (repositories over the run model) is unblocked and needs no gateway.
+
+Phase 3 needs D-001 closed. OpenClaw 2026.9.1 is installed and the gateway is
+correctly configured (loopback, token auth, port 18789), but three things block a
+live route: the `codex` harness plugin is absent, no Anthropic credential is
+configured, and the `pharma-executive` / `pharma-specialist` agents do not exist yet.

@@ -232,3 +232,50 @@ def failure(run_ref: str, message: str) -> list[dict[str, Any]]:
         section(f":x: *{run_ref} could not complete*\n{message}"),
         context("No partial conclusion is offered for a failed run."),
     ]
+
+
+def completion_summary(
+    run_ref: str,
+    brief: ExecutiveDecisionBrief,
+    *,
+    evidence_count: int = 0,
+    specialist_count: int = 0,
+    open_gaps: int = 0,
+    report_filenames: list[str] | None = None,
+    key_issue: str | None = None,
+) -> list[dict[str, Any]]:
+    """The completion post (s17.1).
+
+    Deliberately short. The documents carry the analysis; a wall of text in the
+    channel competes with them and buries the one thing the reader must act on.
+    """
+    header = f"*{run_ref} — REVIEW REQUIRED*" if brief.review_required else f"*{run_ref} complete*"
+    blocks: list[dict[str, Any]] = [section(header)]
+
+    stats = (
+        f"*Confidence:* {CONFIDENCE_LABEL.get(brief.confidence, brief.confidence)}\n"
+        f"*Decision status:* {'Review required' if brief.review_required else 'Complete'}\n"
+        f"*Specialists consulted:* {specialist_count}\n"
+        f"*Evidence items:* {evidence_count}\n"
+        f"*Open critical gaps:* {open_gaps}"
+    )
+    blocks.append(section(stats))
+    blocks.append(section(f"*Conclusion*\n{brief.executive_conclusion}"))
+    blocks.append(section(f"*Recommendation*\n{brief.recommendation}"))
+
+    if report_filenames:
+        blocks.append(section("*Files*\n" + "\n".join(f"• {name}" for name in report_filenames)))
+
+    remaining = key_issue or (brief.information_required[0] if brief.information_required else None)
+    if remaining:
+        blocks.append(section(f"*Key remaining issue*\n{remaining}"))
+
+    if brief.decisions_required_from_user:
+        items = "\n".join(
+            f"• [{d.decision_class.upper()}] {d.question}"
+            for d in brief.decisions_required_from_user[:3]
+        )
+        blocks.append(section(f"*Decisions recorded*\n{items}"))
+
+    blocks.append(context(DISCLAIMER))
+    return blocks

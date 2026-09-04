@@ -73,6 +73,8 @@ class FakeGateway:
         self.default_result = default_result
         self.specialist_calls: list[str] = []
         self.schemas: list[str] = []
+        self.section_calls = 0
+        self.references: list[dict[str, Any]] = []
 
     async def complete_structured(
         self,
@@ -94,7 +96,127 @@ class FakeGateway:
             return self.challenge, usage, info
         if schema is ExecutiveDecisionBrief:
             return self.executive_brief, usage, info
+        composed = self._compose(schema)
+        if composed is not None:
+            return composed, usage, info
         raise AssertionError(f"unexpected schema: {schema.__name__}")
+
+    def _compose(self, schema):
+        """Canned answers for the report composer's staged calls."""
+        name = schema.__name__
+        if name == "ReportOutline":
+            return schema.model_validate(
+                {
+                    "document_title": "Dissolution Investigation — Candidate X Softgel",
+                    "product": "Candidate X",
+                    "strength": "25 mg",
+                    "dosage_form": "Soft gelatin capsule",
+                    "sections": [
+                        {
+                            "heading": "Regulatory framework",
+                            "purpose": "The submission criteria the work is measured against.",
+                            "subsections": [],
+                            "source_artifact_refs": [],
+                            "expected_tables": [],
+                        },
+                        {
+                            "heading": "Quality target product profile",
+                            "purpose": "The QTPP derived from those criteria.",
+                            "subsections": [{"heading": "Dissolution", "purpose": "Release."}],
+                            "source_artifact_refs": [],
+                            "expected_tables": ["QTPP register"],
+                        },
+                        {
+                            "heading": "Critical quality attributes",
+                            "purpose": "Attributes that determine performance.",
+                            "subsections": [],
+                            "source_artifact_refs": [],
+                            "expected_tables": [],
+                        },
+                    ],
+                }
+            )
+        if name == "SectionDraft":
+            self.section_calls += 1
+            return schema.model_validate(
+                {
+                    "heading": f"Composed section {self.section_calls}",
+                    "body": ("The submission criteria are stated in the retrieved guidance. " * 20),
+                    "tables": [
+                        {
+                            "title": "Register",
+                            "columns": ["Attribute", "Target", "Status"],
+                            "rows": [["Dissolution", "Q=75% at 45 min", "provisional"]],
+                        }
+                    ],
+                    "subsections": [],
+                    "evidence_refs": [],
+                    "status": "provisional",
+                }
+            )
+        if name == "ClosingMatter":
+            return schema.model_validate(
+                {
+                    "review_summary": "An independent review examined the draft.",
+                    "critical_review": [
+                        {
+                            "issue": "Classification conflict",
+                            "severity": "high",
+                            "why_it_mattered": "It drives the bioequivalence approach.",
+                            "original_position": "An earlier draft stated the wrong class.",
+                            "evidence_reviewed": [],
+                            "resolution": "Primary regulatory evidence was retrieved.",
+                            "final_position": "The evidence-supported class is used.",
+                            "state": "resolved",
+                        }
+                    ],
+                    "revision_crosswalk": [
+                        {
+                            "issue": "Classification conflict",
+                            "original": "An earlier draft stated the wrong class.",
+                            "critique": "The evidence was inconsistent.",
+                            "action_taken": "Primary source retrieved.",
+                            "revision": "The report states the supported position only.",
+                            "state": "resolved",
+                        }
+                    ],
+                    "information_gaps": [
+                        {
+                            "category": "regulatory",
+                            "gap": "EU orphan status not independently confirmed.",
+                            "why_it_matters": "It affects filing timing.",
+                            "how_to_close": "Request confirmation from the authority.",
+                            "blocks_completion": False,
+                        }
+                    ],
+                    "conclusions": "The change is workable under the stated controls.",
+                    "recommended_actions": [
+                        {"priority": "high", "action": "Run the confirmatory study."}
+                    ],
+                    "unresolved_conflicts": [],
+                }
+            )
+        if name == "BriefSection":
+            return schema.model_validate(
+                {
+                    "brief": {
+                        "executive_summary": self.executive_brief.executive_conclusion,
+                        "objective_and_scope": self.executive_brief.objective,
+                        "overall_recommendation": self.executive_brief.recommendation,
+                        "confidence_and_evidence_status": "Medium confidence.",
+                        "major_risks": self.executive_brief.key_risks,
+                        "key_findings": self.executive_brief.key_findings,
+                        "critical_assumptions": self.executive_brief.critical_assumptions,
+                        "outstanding_information": self.executive_brief.information_required,
+                        "decisions_required": [
+                            d.question for d in self.executive_brief.decisions_required_from_user
+                        ],
+                    }
+                }
+            )
+        if name == "ReferenceList":
+            return schema.model_validate({"references": list(self.references)})
+        return None
 
     async def run_specialist(
         self,

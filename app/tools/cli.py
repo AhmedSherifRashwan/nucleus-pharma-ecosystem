@@ -65,6 +65,10 @@ def build_parser() -> argparse.ArgumentParser:
     sa.add_argument("--title", required=True)
     sa.add_argument("--content", help="content inline")
     sa.add_argument("--content-file", help="read content from a file instead")
+    sa.add_argument(
+        "--supersedes",
+        help="artifact ref from this run that this one replaces (e.g. ART-7)",
+    )
 
     ra = with_context(sub.add_parser("read_artifact", help="read a work product"))
     ra.add_argument("--artifact-ref", required=True)
@@ -103,7 +107,9 @@ async def dispatch(args: argparse.Namespace) -> dict[str, Any]:
             content = Path(args.content_file).read_text(encoding="utf-8")
         if not content:
             return {"error": "provide --content or --content-file"}
-        return await store.save_artifact(ctx, title=args.title, content=content)
+        return await store.save_artifact(
+            ctx, title=args.title, content=content, supersedes=args.supersedes
+        )
 
     if args.tool == "read_artifact":
         return await store.read_artifact(ctx, artifact_ref=args.artifact_ref)

@@ -113,6 +113,8 @@ class ArtifactRepository:
         run_id: uuid.UUID | None = None,
         created_by_agent: str | None = None,
         artifact_ref: str | None = None,
+        status: str = "current",
+        supersedes_ref: str | None = None,
         version: int = 1,
         template_version: str | None = None,
         generator_version: str | None = None,
@@ -128,6 +130,8 @@ class ArtifactRepository:
             project_id=project_id,
             run_id=run_id,
             created_by_agent=created_by_agent,
+            status=status,
+            supersedes_ref=supersedes_ref,
             version=version,
             template_version=template_version,
             generator_version=generator_version,
@@ -135,6 +139,53 @@ class ArtifactRepository:
         self.session.add(artifact)
         await self.session.flush()
         return artifact
+
+    async def supersede(self, *, old_ref: str, new_ref: str, run_id: uuid.UUID) -> bool:
+        """Mark one work product as replaced by another.
+
+        Both must belong to the same run: a revision cannot reach across runs.
+        The row is never deleted - the audit trail keeps the original (s14).
+        """
+        old = await self.get_by_ref(old_ref)
+        new = await self.get_by_ref(new_ref)
+        if old is None or new is None:
+            return False
+        if old.run_id != run_id or new.run_id != run_id:
+            return False
+        old.status = "superseded"
+        old.superseded_by_ref = new_ref
+        new.supersedes_ref = old_ref
+        await self.session.flush()
+        return True
+
+    async def current_work_products(self, run_id: uuid.UUID) -> list[Artifact]:
+        """Work products that still represent the run's position (s18.
+
+        Superseded drafts are excluded: they belong to the audit appendix, not
+        to the report's current scientific conclusions.
+        """
+        stmt = (
+            select(Artifact)
+            .where(
+                Artifact.run_id == run_id,
+                Artifact.kind == "work_product",
+                Artifact.status != "superseded",
+            )
+            .order_by(Artifact.created_at)
+        )
+        return list((await self.session.execute(stmt)).scalars().all())
+
+    async def superseded_work_products(self, run_id: uuid.UUID) -> list[Artifact]:
+        stmt = (
+            select(Artifact)
+            .where(
+                Artifact.run_id == run_id,
+                Artifact.kind == "work_product",
+                Artifact.status == "superseded",
+            )
+            .order_by(Artifact.created_at)
+        )
+        return list((await self.session.execute(stmt)).scalars().all())
 
     async def next_report_version(self, run_id: uuid.UUID) -> int:
         """s18.3: a report is versioned, never overwritten."""

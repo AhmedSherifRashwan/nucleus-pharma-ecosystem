@@ -804,11 +804,12 @@ async def human_decision(state: RunState) -> dict[str, Any]:
 
 
 async def build_report(state: RunState) -> dict[str, Any]:
-    """Assemble the DOCX deliverable (s18, Phase 12).
+    """Compose and render the deliverable (s18, s32).
 
-    Deterministic: the report is built from persisted records, not regenerated
-    prose. A report that cannot be produced is reported as such — the run does
-    not quietly complete without its deliverable.
+    The technical report is composed from the run's current work products, not
+    from summaries of them, and never from superseded drafts. If composition
+    fails the brief-only document still ships: a run that produced real specialist
+    work must not end with nothing in the client's hands.
     """
     run_id = _run_uuid(state)
     brief = state.get("executive_brief")
@@ -817,43 +818,82 @@ async def build_report(state: RunState) -> dict[str, Any]:
 
     await _progress(state, "reporting")
     project_id = state.get("project_id")
+    project_uuid = uuid.UUID(project_id) if project_id else None
+    service = get_report_service()
+
     try:
-        result, warnings = await get_report_service().generate(
+        outcome = await service.generate_technical_report(
             run_id=run_id,
             run_ref=state.get("run_ref") or str(run_id),
+            user_request=state.get("user_request") or "",
             brief=brief,
             results=state.get("specialist_results") or [],
+            plan=state.get("plan"),
+            challenge=state.get("challenge"),
             agent_names=_agent_names(),
-            project_id=uuid.UUID(project_id) if project_id else None,
+            project_id=project_uuid,
         )
-    except Exception as exc:  # noqa: BLE001 - report failure must not lose the analysis
-        log.error("report_failed", error=str(exc)[:300])
+        paths = [str(p) for p in outcome.paths]
+        warnings = outcome.warnings
+        review_required = outcome.review_required
+        summary = {
+            "sections": outcome.section_count,
+            "words": outcome.word_count,
+            "title": outcome.document_title,
+        }
+    except Exception as exc:  # noqa: BLE001 - the analysis must not be lost
+        log.error("report_composition_failed", error=str(exc)[:300])
         async with session_scope() as s:
             await AuditRepository(s).record(
                 event_type=EventType.RUN_REVIEW_REQUIRED,
                 actor_type="system",
                 run_id=run_id,
-                metadata={"reason": "report_generation_failed", "error": str(exc)[:300]},
+                metadata={"reason": "report_composition_failed", "error": str(exc)[:300]},
             )
-        return {
-            "current_stage": "report_failed",
-            "report_error": f"The report could not be generated: {exc}",
-        }
+        try:
+            result, warnings = await service.generate(
+                run_id=run_id,
+                run_ref=state.get("run_ref") or str(run_id),
+                brief=brief,
+                results=state.get("specialist_results") or [],
+                agent_names=_agent_names(),
+                project_id=project_uuid,
+                user_request=state.get("user_request") or "",
+            )
+        except Exception as fallback_exc:  # noqa: BLE001
+            log.error("report_failed", error=str(fallback_exc)[:300])
+            return {
+                "current_stage": "report_failed",
+                "report_error": f"The report could not be generated: {fallback_exc}",
+            }
+        paths = [str(result.path)]
+        review_required = True
+        warnings = [
+            f"The full technical report could not be composed ({exc}). "
+            "The Executive Decision Brief was produced instead."
+        ] + warnings
+        summary = {"sections": 0, "words": 0, "title": None}
 
-    paths = [str(result.path)]
     channel = state.get("slack_channel")
     if channel:
-        await get_notifier().upload_file(
-            channel=channel,
-            path=result.path,
-            title=result.filename,
-            comment=f"{state.get('run_ref') or 'Run'} — Executive Decision Brief v{result.version}",
-            thread_ts=state.get("slack_thread_ts"),
-        )
+        notifier = get_notifier()
+        for path in paths:
+            await notifier.upload_file(
+                channel=channel,
+                path=path,
+                title=Path(path).name,
+                thread_ts=state.get("slack_thread_ts"),
+            )
+    log.info("report_delivered", files=len(paths), **summary)
     return {
         "current_stage": "report_built",
         "report_paths": paths,
         "report_warnings": warnings,
+        "report_error": (
+            "The report gate flagged shortfalls; see the report's document control."
+            if review_required
+            else None
+        ),
     }
 
 
@@ -905,13 +945,16 @@ async def persist_final(state: RunState) -> dict[str, Any]:
     await _progress(state, "finished")
 
     if brief is not None:
-        blocks = slack_blocks.executive_brief(
+        warnings = state.get("report_warnings") or []
+        blocks = slack_blocks.completion_summary(
             state.get("run_ref") or "Run",
             brief,
-            _agent_names(),
             evidence_count=len(state.get("evidence_refs") or []),
-            # The file itself is uploaded to the thread; the message names it.
-            report_paths=[Path(p).name for p in (state.get("report_paths") or [])],
+            specialist_count=len({r.agent_id for r in results}),
+            open_gaps=len(brief.information_required),
+            # The files themselves are uploaded to the thread; this names them.
+            report_filenames=[Path(p).name for p in (state.get("report_paths") or [])],
+            key_issue=warnings[0] if warnings else None,
         )
         report_error = state.get("report_error")
         if report_error:

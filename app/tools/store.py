@@ -78,9 +78,20 @@ async def save_evidence(
 
 
 async def save_artifact(
-    ctx: ToolContext, *, title: str, content: str, content_type: str = "text/markdown"
+    ctx: ToolContext,
+    *,
+    title: str,
+    content: str,
+    content_type: str = "text/markdown",
+    supersedes: str | None = None,
 ) -> dict[str, Any]:
-    """Persist a long work product and return its reference (s19)."""
+    """Persist a long work product and return its reference (s19).
+
+    `supersedes` names an earlier artifact from this run that this one replaces.
+    The earlier one is kept for the audit trail but stops counting as the run's
+    current position, so a revision does not reach the reader alongside the draft
+    it corrects.
+    """
     ctx.require_tool("save_artifact")
     settings = get_settings()
 
@@ -106,15 +117,34 @@ async def save_artifact(
             created_by_agent=ctx.agent_id,
             artifact_ref=ref,
         )
+        superseded = False
+        if supersedes:
+            superseded = await repo.supersede(
+                old_ref=supersedes.strip(), new_ref=ref, run_id=ctx.run_id
+            )
         await AuditRepository(session).record(
             event_type=EventType.ARTIFACT_CREATED,
             actor_type="agent",
             actor_id=ctx.agent_id,
             run_id=ctx.run_id,
             task_id=ctx.task_row_id,
-            metadata={"artifact_ref": ref, "bytes": len(content.encode())},
+            metadata={
+                "artifact_ref": ref,
+                "bytes": len(content.encode()),
+                "supersedes": supersedes if superseded else None,
+            },
         )
-    return {"artifact_ref": ref, "title": title}
+    result: dict[str, Any] = {"artifact_ref": ref, "title": title}
+    if supersedes:
+        # Said plainly: a specialist that thinks it replaced a draft and did not
+        # would otherwise leave both standing.
+        result["supersedes"] = supersedes if superseded else None
+        if not superseded:
+            result["warning"] = (
+                f"{supersedes} was not superseded: no such artifact in this run. "
+                f"{ref} was saved and both now count as current."
+            )
+    return result
 
 
 async def read_artifact(ctx: ToolContext, *, artifact_ref: str) -> dict[str, Any]:

@@ -17,6 +17,7 @@ import sys
 
 from app.audit.logger import configure_logging, get_logger
 from app.config import get_settings
+from app.reports.naming import subject_from_request
 from app.storage.db import dispose_engine, session_scope
 from app.storage.repositories import (
     AuditRepository,
@@ -43,8 +44,13 @@ def default_budgets() -> dict:
     }
 
 
-def project_name_for(channel: str, thread: str) -> str:
-    return f"Slack {channel}/{thread}"
+def project_name_for(channel: str, thread: str, request: str) -> str:
+    """Name the project after its subject.
+
+    The thread identifies the project; it does not describe it, and the name
+    reaches the client on the report's filename (s18.2).
+    """
+    return subject_from_request(request) or f"Slack {channel}/{thread}"
 
 
 async def enqueue(
@@ -83,7 +89,7 @@ async def enqueue(
             project, _ = await ProjectRepository(session).get_or_create_for_thread(
                 slack_channel_id=channel,
                 thread_ts=thread,
-                name=project_name_for(channel, thread),
+                name=project_name_for(channel, thread, request),
             )
             project_id = project.id
 

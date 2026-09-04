@@ -66,6 +66,21 @@ cd "{{NEUCLEUS_ROOT}}" && uv run python -m app.tools.cli read_artifact \
   --context "$NEUCLEUS_CONTEXT" --artifact-ref ART-3
 ```
 
+**Revising your own earlier work.** When you rewrite a work product — typically
+after a critical review — save the new version with `--supersedes` naming the one
+it replaces:
+
+```bash
+cd "{{NEUCLEUS_ROOT}}" && uv run python -m app.tools.cli save_artifact \
+  --context "$NEUCLEUS_CONTEXT" --title "QTPP — Revision 1" \
+  --content-file /tmp/qtpp_rev1.md --supersedes ART-7
+```
+
+Without this the superseded draft still counts as the run's current position, and
+the reader receives your draft and your correction side by side as though both
+still stood. The old version is kept for the audit trail either way — nothing is
+deleted.
+
 ## Search project documents
 
 ```bash

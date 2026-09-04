@@ -18,6 +18,7 @@ from app.orchestration import planner as planner_mod
 from app.orchestration import specialist_runner as runner_mod
 from app.orchestration import synthesis as synthesis_mod
 from app.orchestration.graph import compile_graph
+from app.reports import composer as composer_mod
 from app.schemas.executive import ChallengeResult, Contradiction, DecisionRequired
 from app.schemas.planning import Plan, PlannedTask
 from app.storage.db import session_scope
@@ -78,6 +79,7 @@ def wire(monkeypatch, gateway: FakeGateway):
     monkeypatch.setattr(challenge_mod, "get_gateway_client", lambda: gateway)
     monkeypatch.setattr(synthesis_mod, "get_gateway_client", lambda: gateway)
     monkeypatch.setattr(runner_mod, "get_gateway_client", lambda: gateway)
+    monkeypatch.setattr(composer_mod, "get_gateway_client", lambda: gateway)
 
 
 async def make_run(request: str = "Assess the dissolution slow-down.") -> tuple[uuid.UUID, str]:
@@ -383,18 +385,22 @@ async def test_a_completed_run_produces_a_report_artifact(monkeypatch):
     final = await app.ainvoke(initial(run_id, run_ref), config=config(run_id))
 
     assert final["status"] == "complete"
-    paths = final.get("report_paths") or []
-    assert len(paths) == 1
-    report = Path(paths[0])
-    assert report.is_file() and report.suffix == ".docx"
-    assert report.name.endswith("_v1.docx")
+    paths = [Path(p) for p in (final.get("report_paths") or [])]
+    # The technical report and the standalone brief are separate deliverables.
+    assert len(paths) == 2
+    assert all(p.is_file() and p.suffix == ".docx" for p in paths)
+    assert any("Technical_Report" in p.name for p in paths)
+    assert any("Executive_Decision_Brief" in p.name for p in paths)
+    assert all(p.name.endswith("_v1.docx") for p in paths)
+    # The filename carries the subject, not the Slack channel and timestamp.
+    assert not any(p.name.startswith("Slack_") for p in paths)
 
     async with session_scope() as s:
         artifacts = [
             a for a in await ArtifactRepository(s).list_for_run(run_id) if a.kind == "report"
         ]
         events = await AuditRepository(s).event_types_for_run(run_id)
-    assert [a.version for a in artifacts] == [1]
+    assert sorted(a.version for a in artifacts) == [1, 1]
     assert "report.generated" in events
 
 

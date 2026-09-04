@@ -303,6 +303,12 @@ class Artifact(Base, TimestampMixin):
     size_bytes: Mapped[int | None] = mapped_column(Integer)
     sha256: Mapped[str | None] = mapped_column(String(64))
     created_by_agent: Mapped[str | None] = mapped_column(String(8))
+    # Lifecycle: draft | current | superseded | approved. A revision supersedes
+    # the draft it replaces, so the report generator can tell which QTPP is the
+    # QTPP rather than printing both.
+    status: Mapped[str] = mapped_column(String(16), default="current", nullable=False)
+    supersedes_ref: Mapped[str | None] = mapped_column(String(64))
+    superseded_by_ref: Mapped[str | None] = mapped_column(String(64))
     # s18.3: reports are versioned, never overwritten.
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     template_version: Mapped[str | None] = mapped_column(String(64))

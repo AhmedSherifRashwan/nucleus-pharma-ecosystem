@@ -1,29 +1,110 @@
-2026-09-04T09:18:30.489805Z [info     ] langgraph_checkpointer_ready
-2026-09-04T09:18:32.956863Z [info     ] worker_started                 enabled=14 gateway_reachable=True profiles=16 worker_id=Ahmeds-MacBook-Air.local-36196
-2026-09-04T09:21:27.474353Z [info     ] job_claimed                    attempt=1 job_id=643b184f-e579-47bd-be2c-83b0288fb078 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 type=orchestrate worker=Ahmeds-MacBook-Air.local-36196
-2026-09-04T09:21:27.633700Z [info     ] stage_intake                   chars=582 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 worker=Ahmeds-MacBook-Air.local-36196
+2026-09-04T09:51:11.844300Z [info     ] langgraph_checkpointer_ready
+2026-09-04T09:51:15.508735Z [info     ] worker_started                 enabled=14 gateway_reachable=True profiles=16 worker_id=Ahmeds-MacBook-Air.local-45254
+2026-09-04T09:54:10.004518Z [info     ] job_claimed                    attempt=1 job_id=fa0b3d44-913d-4e8d-a65d-3f7c045c1f86 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 type=orchestrate worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T09:54:10.034935Z [info     ] stage_intake                   chars=582 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 worker=Ahmeds-MacBook-Air.local-45254
 HTTP Request: POST https://slack.com/api/chat.postMessage "HTTP/1.1 200 OK"
-2026-09-04T09:22:05.249123Z [info     ] plan_created                   agents=['A02', 'A03', 'A04', 'A14'] approval_required=True errors=None forced_approval=False groups=4 model=gpt-5.4 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 tasks=5 valid=True warnings=None worker=Ahmeds-MacBook-Air.local-36196
+2026-09-04T09:54:41.085514Z [info     ] plan_created                   agents=['A02', 'A03', 'A04', 'A14'] approval_required=True errors=None forced_approval=False groups=4 model=gpt-5.4 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 tasks=5 valid=True warnings=None worker=Ahmeds-MacBook-Air.local-45254
 HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
 HTTP Request: POST https://slack.com/api/chat.postMessage "HTTP/1.1 200 OK"
-2026-09-04T09:22:05.938387Z [info     ] job_complete                   job_id=643b184f-e579-47bd-be2c-83b0288fb078 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 worker=Ahmeds-MacBook-Air.local-36196
-2026-09-04T09:33:41.640213Z [info     ] job_claimed                    attempt=1 job_id=f458069b-3572-4f4f-ae75-fe0058e86309 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 type=resume worker=Ahmeds-MacBook-Air.local-36196
-2026-09-04T09:33:41.644968Z [info     ] resuming_run                   decision=approved run_id=89e28168-6be1-4087-a1dd-698a740f6b82 worker=Ahmeds-MacBook-Air.local-36196
+2026-09-04T09:54:42.157656Z [info     ] job_complete                   job_id=fa0b3d44-913d-4e8d-a65d-3f7c045c1f86 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T09:55:30.280970Z [info     ] job_claimed                    attempt=1 job_id=3c697414-06e0-44e9-a6e2-b87ee5126a3d run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 type=resume worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T09:55:30.284419Z [info     ] resuming_run                   decision=approved run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 worker=Ahmeds-MacBook-Air.local-45254
 Deserializing unregistered type app.schemas.planning.Plan from checkpoint. This will be blocked in a future version. Set LANGGRAPH_STRICT_MSGPACK=true to block now, or add to allowed_msgpack_modules to allow explicitly: [('app.schemas.planning', 'Plan')]
 Deserializing unregistered type app.schemas.planning.RunBudget from checkpoint. This will be blocked in a future version. Set LANGGRAPH_STRICT_MSGPACK=true to block now, or add to allowed_msgpack_modules to allow explicitly: [('app.schemas.planning', 'RunBudget')]
-2026-09-04T09:33:41.653237Z [info     ] resume_from_interrupt          run_id=89e28168-6be1-4087-a1dd-698a740f6b82 worker=Ahmeds-MacBook-Air.local-36196
+2026-09-04T09:55:30.291239Z [info     ] resume_from_interrupt          run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 worker=Ahmeds-MacBook-Air.local-45254
+HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
+2026-09-04T09:55:30.642473Z [info     ] specialist_start               agent_id=A02 agent_version=1.0.0 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 task_id=T1 tools=5 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:04:49.572246Z [info     ] specialist_complete            agent_id=A02 confidence=medium corrected=False duration_ms=556282 escalation=True evidence=6 findings=9 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 status=complete task_id=T1 unsupported=0 worker=Ahmeds-MacBook-Air.local-45254
+HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
+2026-09-04T10:04:49.986821Z [info     ] specialist_start               agent_id=A03 agent_version=1.0.0 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 task_id=T2 tools=4 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:04:50.022143Z [info     ] specialist_start               agent_id=A04 agent_version=1.0.0 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 task_id=T3 tools=5 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:08:34.236211Z [warning  ] evidence_policy_violation      agent_id=A04 count=1 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 task_id=T3 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:09:15.586415Z [info     ] specialist_complete            agent_id=A04 confidence=low corrected=True duration_ms=257109 escalation=True evidence=4 findings=3 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 status=needs_information task_id=T3 unsupported=0 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:09:57.353482Z [info     ] specialist_complete            agent_id=A03 confidence=low corrected=False duration_ms=303464 escalation=True evidence=8 findings=7 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 status=needs_information task_id=T2 unsupported=0 worker=Ahmeds-MacBook-Air.local-45254
+HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
+2026-09-04T10:09:57.806354Z [info     ] specialist_start               agent_id=A14 agent_version=1.0.0 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 task_id=T4 tools=5 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:13:48.693185Z [warning  ] evidence_policy_violation      agent_id=A14 count=5 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 task_id=T4 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:15:39.935226Z [info     ] specialist_complete            agent_id=A14 confidence=medium corrected=True duration_ms=333929 escalation=False evidence=6 findings=5 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 status=complete task_id=T4 unsupported=0 worker=Ahmeds-MacBook-Air.local-45254
+HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
+2026-09-04T10:15:40.274441Z [info     ] specialist_start               agent_id=A03 agent_version=1.0.0 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 task_id=T5 tools=4 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:21:45.913271Z [warning  ] evidence_policy_violation      agent_id=A03 count=3 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 task_id=T5 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:23:04.081270Z [info     ] specialist_complete            agent_id=A03 confidence=medium corrected=True duration_ms=436517 escalation=True evidence=13 findings=9 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 status=complete task_id=T5 unsupported=0 worker=Ahmeds-MacBook-Air.local-45254
+HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
+2026-09-04T10:23:04.471807Z [info     ] dispatch_complete              completed=5 failed=0 groups=4 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 violations=0 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:23:04.501745Z [info     ] conflict_detection             run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 signals=19 worker=Ahmeds-MacBook-Air.local-45254
+HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
+2026-09-04T10:23:58.520093Z [info     ] challenge_complete             contradictions=2 dropped=0 escalation=True followups=3 material=2 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 unsupported=4 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:23:58.553070Z [info     ] followups_created              count=3 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 worker=Ahmeds-MacBook-Air.local-45254
+HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
+2026-09-04T10:23:59.276912Z [info     ] specialist_start               agent_id=A02 agent_version=1.0.0 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 task_id=F1 tools=5 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:23:59.289494Z [info     ] specialist_start               agent_id=A09 agent_version=1.0.0 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 task_id=F2 tools=6 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:23:59.299568Z [info     ] specialist_start               agent_id=A04 agent_version=1.0.0 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 task_id=F3 tools=5 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:30:08.609725Z [info     ] specialist_complete            agent_id=A02 confidence=low corrected=False duration_ms=366064 escalation=True evidence=6 findings=7 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 status=needs_information task_id=F1 unsupported=0 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:31:06.557656Z [info     ] specialist_complete            agent_id=A04 confidence=medium corrected=False duration_ms=424019 escalation=True evidence=1 findings=5 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 status=complete task_id=F3 unsupported=0 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:37:41.654751Z [warning  ] evidence_policy_violation      agent_id=A09 count=1 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 task_id=F2 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:38:40.287471Z [info     ] specialist_complete            agent_id=A09 confidence=high corrected=True duration_ms=871674 escalation=True evidence=5 findings=8 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 status=complete task_id=F2 unsupported=0 worker=Ahmeds-MacBook-Air.local-45254
+HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
+2026-09-04T10:38:40.682036Z [info     ] dispatch_complete              completed=3 failed=0 groups=1 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 violations=0 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:38:40.704802Z [info     ] conflict_detection             run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 signals=28 worker=Ahmeds-MacBook-Air.local-45254
+HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
+2026-09-04T10:39:32.241533Z [warning  ] structured_output_correction   error='no JSON object found in the response' route=executive run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 schema=ExecutiveDecisionBrief worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:45:55.603629Z [error    ] job_failed                     error="StructuredOutputError: ExecutiveDecisionBrief validation failed after one correction attempt on route 'executive': no JSON object found in the response" job_id=3c697414-06e0-44e9-a6e2-b87ee5126a3d run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 worker=Ahmeds-MacBook-Air.local-45254
+Traceback (most recent call last):
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/worker.py", line 111, in _process_one
+    await self._execute(app, run_id, job_type, payload)
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/worker.py", line 144, in _execute
+    await resume_run(app, run_id, decision)
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/orchestration/engine.py", line 76, in resume_run
+    return await app.ainvoke(Command(resume=decision), config=config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/pregel/main.py", line 4090, in ainvoke
+    async for chunk in self.astream(
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/pregel/main.py", line 3440, in astream
+    async for _ in runner.atick(
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/pregel/_runner.py", line 396, in atick
+    await arun_with_retry(
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/pregel/_retry.py", line 744, in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py", line 756, in ainvoke
+    input = await asyncio.create_task(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py", line 522, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/orchestration/graph.py", line 629, in synthesis_node
+    outcome = await synthesize(
+              ^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/orchestration/synthesis.py", line 127, in synthesize
+    brief, usage, route = await client.complete_structured(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/providers/openclaw_client.py", line 518, in complete_structured
+    raise StructuredOutputError(
+app.providers.openclaw_client.StructuredOutputError: ExecutiveDecisionBrief validation failed after one correction attempt on route 'executive': no JSON object found in the response
+During task with name 'synthesis' and id 'f0726282-60a7-b1f9-36f5-0c1df0ad7f22'
+2026-09-04T10:46:25.710963Z [info     ] job_claimed                    attempt=2 job_id=3c697414-06e0-44e9-a6e2-b87ee5126a3d run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 type=resume worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:46:25.713059Z [info     ] resuming_run                   decision=approved run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 worker=Ahmeds-MacBook-Air.local-45254
+Deserializing unregistered type app.schemas.executive.ChallengeResult from checkpoint. This will be blocked in a future version. Set LANGGRAPH_STRICT_MSGPACK=true to block now, or add to allowed_msgpack_modules to allow explicitly: [('app.schemas.executive', 'ChallengeResult')]
+Deserializing unregistered type app.schemas.specialist.SpecialistResult from checkpoint. This will be blocked in a future version. Set LANGGRAPH_STRICT_MSGPACK=true to block now, or add to allowed_msgpack_modules to allow explicitly: [('app.schemas.specialist', 'SpecialistResult')]
+2026-09-04T10:46:25.723865Z [info     ] resume_from_checkpoint         next_nodes=['synthesis'] run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 worker=Ahmeds-MacBook-Air.local-45254
+HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
+2026-09-04T10:47:42.788377Z [info     ] synthesis_complete             confidence=low decision_class=red decisions=3 disagreements=2 review_required=True run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:47:42.816168Z [info     ] quality_gate                   passed=False reasons=['evidence_refs_resolve: unknown evidence ids: E-50: ANDA 214433 is an unrelated sitagliptin application, not midostaurin., E-51: The actual FDA-approved midostaurin generic ANDAs are 216015 and 215921., E-47: FDA PSG_207997 is draft guidance and requires two in vivo BE studies with no waiver., E-48: Current Rydapt NDA 207997 labeling was retrieved and confirms the US reference-product indication framework., E-49: Additional Rydapt label evidence supports current US labeling context., E-53: EMA CHMP assessment report supports Midostaurin as BCS Class II., E-54: Regulatory source evidence supports oxidative and photolytic sensitivity and informs formulation/test-panel considerations., E-55: FDA BE study expectations were directly confirmed., E-57: FDA Dissolution Methods Database states no recommended dissolution method exists for midostaurin capsules., E-46: The Critical Quality Framework was built on the revised QTPP baseline but remains screening-level for criticality.'] run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 worker=Ahmeds-MacBook-Air.local-45254
 HTTP Request: POST https://slack.com/api/chat.postMessage "HTTP/1.1 200 OK"
+2026-09-04T10:47:43.095348Z [info     ] job_complete                   job_id=3c697414-06e0-44e9-a6e2-b87ee5126a3d run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:50:55.649573Z [info     ] job_claimed                    attempt=1 job_id=a3ecf603-0dd2-40fe-8577-79646e4147b1 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 type=resume worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:50:55.653183Z [info     ] resuming_run                   decision=approved run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 worker=Ahmeds-MacBook-Air.local-45254
+Deserializing unregistered type app.schemas.executive.QualityGateResult from checkpoint. This will be blocked in a future version. Set LANGGRAPH_STRICT_MSGPACK=true to block now, or add to allowed_msgpack_modules to allow explicitly: [('app.schemas.executive', 'QualityGateResult')]
+Deserializing unregistered type app.schemas.executive.ExecutiveDecisionBrief from checkpoint. This will be blocked in a future version. Set LANGGRAPH_STRICT_MSGPACK=true to block now, or add to allowed_msgpack_modules to allow explicitly: [('app.schemas.executive', 'ExecutiveDecisionBrief')]
+2026-09-04T10:50:55.666546Z [info     ] resume_from_interrupt          run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 worker=Ahmeds-MacBook-Air.local-45254
 HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
-2026-09-04T09:33:42.370620Z [info     ] specialist_start               agent_id=A02 agent_version=1.0.0 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 task_id=T1 tools=5 worker=Ahmeds-MacBook-Air.local-36196
-2026-09-04T09:38:45.596495Z [warning  ] specialist_failed              agent_id=A02 error='gateway timeout after 300000ms' run_id=89e28168-6be1-4087-a1dd-698a740f6b82 task_id=T1 worker=Ahmeds-MacBook-Air.local-36196
+2026-09-04T10:50:56.055528Z [info     ] report_generated               bytes=53331 filename=Slack_C0BUYN3KV50_1788515577.573649_Executive_Decision_Brief_RUN-2026-0006_v1.docx run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 run_ref=RUN-2026-0006 version=1 worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:50:56.061045Z [info     ] report_ready                   formats=1 qa_warnings=0 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 run_ref=RUN-2026-0006 version=1 worker=Ahmeds-MacBook-Air.local-45254
+HTTP Request: POST https://slack.com/api/files.getUploadURLExternal "HTTP/1.1 200 OK"
+HTTP Request: POST https://files.slack.com/upload/v1/CwABAAAAXAoAAQkG3lbbBXQICgACGNIYmwyk0hAMAAMLAAEAAAALVDBCVVdROVRQMzgLAAIAAAALVTBDMERKMDFZUVkLAAMAAAALRjBDMEYwTE5HMVcACgAEAAAAAAAA0FMACwACAAAAFOkfj-RRAdS3v9kA3ItiHc3-55bZAA "HTTP/1.1 200 OK"
+HTTP Request: POST https://slack.com/api/files.completeUploadExternal "HTTP/1.1 200 OK"
+2026-09-04T10:50:57.766732Z [info     ] slack_file_uploaded            bytes=53331 filename=Slack_C0BUYN3KV50_1788515577.573649_Executive_Decision_Brief_RUN-2026-0006_v1.docx run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 worker=Ahmeds-MacBook-Air.local-45254
 HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
-2026-09-04T09:38:46.080239Z [info     ] specialist_start               agent_id=A03 agent_version=1.0.0 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 task_id=T2 tools=4 worker=Ahmeds-MacBook-Air.local-36196
-2026-09-04T09:38:46.095869Z [info     ] specialist_start               agent_id=A04 agent_version=1.0.0 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 task_id=T3 tools=5 worker=Ahmeds-MacBook-Air.local-36196
-2026-09-04T09:41:00.994021Z [warning  ] evidence_policy_violation      agent_id=A04 count=1 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 task_id=T3 worker=Ahmeds-MacBook-Air.local-36196
-2026-09-04T09:41:27.451785Z [info     ] specialist_complete            agent_id=A04 confidence=low corrected=True duration_ms=154962 escalation=True evidence=0 findings=2 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 status=needs_information task_id=T3 unsupported=0 worker=Ahmeds-MacBook-Air.local-36196
-2026-09-04T09:43:49.026425Z [warning  ] specialist_failed              agent_id=A03 error='gateway timeout after 300000ms' run_id=89e28168-6be1-4087-a1dd-698a740f6b82 task_id=T2 worker=Ahmeds-MacBook-Air.local-36196
-HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
-2026-09-04T09:43:49.490472Z [info     ] specialist_start               agent_id=A14 agent_version=1.0.0 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 task_id=T4 tools=5 worker=Ahmeds-MacBook-Air.local-36196
-2026-09-04T09:48:02.278343Z [info     ] specialist_complete            agent_id=A14 confidence=medium corrected=False duration_ms=250029 escalation=False evidence=3 findings=7 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 status=needs_information task_id=T4 unsupported=0 worker=Ahmeds-MacBook-Air.local-36196
-HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
-2026-09-04T09:48:02.637597Z [info     ] specialist_start               agent_id=A03 agent_version=1.0.0 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 task_id=T5 tools=4 worker=Ahmeds-MacBook-Air.local-36196
+HTTP Request: POST https://slack.com/api/chat.postMessage "HTTP/1.1 200 OK"
+2026-09-04T10:50:58.201149Z [info     ] run_finished                   failed=0 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 specialists=8 status=review_required worker=Ahmeds-MacBook-Air.local-45254
+2026-09-04T10:50:58.209719Z [info     ] job_complete                   job_id=a3ecf603-0dd2-40fe-8577-79646e4147b1 run_id=9e07c4a9-d635-40b6-b343-1a46421a7eb5 worker=Ahmeds-MacBook-Air.local-45254

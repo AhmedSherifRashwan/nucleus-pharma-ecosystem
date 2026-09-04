@@ -226,3 +226,38 @@ returns `None` rather than raising — a Slack outage must not fail an otherwise
 complete pharmaceutical run, and the result is in PostgreSQL either way.
 
 *Revisit if:* OpenClaw exposes a non-agent send method on the gateway.
+
+
+### D-015 · The report is assembled deterministically, and never overwritten
+§18 makes the DOCX the deliverable a client actually keeps. Two ways to produce it
+were available: ask the executive model to write the document, or assemble it from
+the records the run already persisted.
+
+*Decision:* `app/reports/builder.py` assembles it from `ExecutiveDecisionBrief`,
+`SpecialistResult`, `EvidenceItem` and `Risk` rows. No model call is involved. Every
+§18.1 section is rendered every time; a section with nothing in it prints
+"None identified." rather than disappearing, because an absent section reads as an
+oversight while an explicit statement can be relied on.
+
+Versioning follows §18.3 literally: `ReportBuilder.build()` raises rather than
+overwrite an existing file, and each run gets its own folder
+(`<reports>/<RUN-REF>_<uuid8>/`) so two runs can never contend for a filename.
+The artifact row records the sha256, template version and generator version, so any
+delivered file can be traced back to the layout and code that produced it.
+
+*Report QA (§32.3):* every `E-n` cited in the brief is checked against the evidence
+table before the file is written. A dangling ID is surfaced as a warning rather than
+printed as provenance the reader cannot check.
+
+*Consequences:* the report cannot be paraphrased, reordered or quietly abridged
+between runs, and it costs no tokens. It also means the wording is only as good as
+the brief — the model's judgement lives in the brief, and the document is a faithful
+container for it.
+
+*PDF:* conversion goes through LibreOffice when it is installed
+(`REPORT_PDF_ENABLED=true`), and returns nothing when it is not. The DOCX remains
+authoritative; a missing converter must not fail a pharmaceutical run.
+
+*Delivery:* the file is uploaded into the Slack thread through Slack's external
+upload flow (`files:write`, already granted). A path in a message is useless to a
+client who is not sitting at this machine.

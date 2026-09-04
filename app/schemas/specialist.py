@@ -75,6 +75,8 @@ class TaskEnvelope(StrictModel):
     knowledge_scopes: list[str] = Field(default_factory=list)
     restrictions: list[str] = Field(default_factory=list)
     escalation_rules: list[str] = Field(default_factory=list)
+    # RUN-REF:TASK-ID, quoted back on every tool call and verified server-side.
+    tool_context: str | None = None
     output_schema_version: str = "1.0.0"
     max_steps: int = Field(default=12, ge=1, le=50)
 

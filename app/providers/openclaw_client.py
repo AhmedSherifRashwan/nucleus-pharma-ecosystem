@@ -320,18 +320,30 @@ class OpenClawClient:
         )
 
     def build_params(
-        self, route: AgentRoute, message: str, idempotency_key: str | None = None
+        self,
+        route: AgentRoute,
+        message: str,
+        idempotency_key: str | None = None,
+        session_key: str | None = None,
     ) -> dict[str, Any]:
         """Params for the verified `agent` RPC method.
 
         The gateway REQUIRES idempotencyKey. Carrying run/task identity in it
         rather than a random value gives s31.2 deduplication for free.
+
+        `sessionKey` isolates the turn. Without it every specialist shares one
+        session on the pharma-specialist agent, so parallel specialists would see
+        each other's conversation history - a direct breach of the s10.3 context
+        isolation rule.
         """
-        return {
+        params: dict[str, Any] = {
             "agentId": self.agent_id_for(route),
             "message": message,
             "idempotencyKey": idempotency_key or f"auto-{uuid.uuid4().hex[:16]}",
         }
+        if session_key:
+            params["sessionKey"] = session_key
+        return params
 
     # -- transport ----------------------------------------------------------
 
@@ -387,11 +399,12 @@ class OpenClawClient:
         message: str,
         *,
         idempotency_key: str | None = None,
+        session_key: str | None = None,
         timeout_seconds: int | None = None,
     ) -> GatewayReply:
         """One agent turn through the gateway."""
         timeout = timeout_seconds or self._settings.openclaw_timeout_seconds
-        params = self.build_params(route, message, idempotency_key)
+        params = self.build_params(route, message, idempotency_key, session_key)
 
         started = time.monotonic()
         payload = await self._runner(AGENT_METHOD, params, timeout)
@@ -451,6 +464,7 @@ class OpenClawClient:
         user: str,
         schema: type[T],
         idempotency_key: str | None = None,
+        session_key: str | None = None,
         timeout_seconds: int | None = None,
     ) -> tuple[T, Usage, RouteInfo]:
         """Structured call used for PLAN, CHALLENGE and SYNTHESIZE.
@@ -471,6 +485,7 @@ class OpenClawClient:
                 message,
                 # A correction is a distinct turn and needs its own key.
                 idempotency_key=f"{base_key}-a{attempt}",
+                session_key=session_key,
                 timeout_seconds=timeout_seconds,
             )
             total = total + reply.usage
@@ -512,6 +527,7 @@ class OpenClawClient:
         user: str,
         result_schema: type[T],
         idempotency_key: str | None = None,
+        session_key: str | None = None,
         timeout_seconds: int | None = None,
     ) -> tuple[T, Usage, RouteInfo]:
         """Run one specialist profile through the Claude route."""
@@ -521,6 +537,7 @@ class OpenClawClient:
             user=user,
             schema=result_schema,
             idempotency_key=idempotency_key,
+            session_key=session_key,
             timeout_seconds=timeout_seconds,
         )
 

@@ -75,7 +75,15 @@ class FakeGateway:
         self.schemas: list[str] = []
 
     async def complete_structured(
-        self, *, route, system, user, schema, idempotency_key=None, timeout_seconds=None
+        self,
+        *,
+        route,
+        system,
+        user,
+        schema,
+        idempotency_key=None,
+        session_key=None,
+        timeout_seconds=None,
     ):
         self.schemas.append(schema.__name__)
         usage = Usage(duration_ms=30, steps=1)
@@ -89,7 +97,14 @@ class FakeGateway:
         raise AssertionError(f"unexpected schema: {schema.__name__}")
 
     async def run_specialist(
-        self, *, system, user, result_schema, idempotency_key=None, timeout_seconds=None
+        self,
+        *,
+        system,
+        user,
+        result_schema,
+        idempotency_key=None,
+        session_key=None,
+        timeout_seconds=None,
     ):
         objective = _objective(user)
         self.specialist_calls.append(objective)

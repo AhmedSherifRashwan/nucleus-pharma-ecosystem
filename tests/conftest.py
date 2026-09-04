@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 
 # Point the session at a dedicated database BEFORE app modules read settings.
 # Integration tests truncate tables, so they must never touch the dev database.
@@ -16,6 +17,8 @@ os.environ["LANGGRAPH_DATABASE_URL"] = os.environ.get(
     f"postgresql://ai:change-me@localhost:5432/{TEST_DB}",
 )
 os.environ.setdefault("APP_ENV", "development")
+# Reports are real files. Keep test output out of the working tree.
+os.environ.setdefault("ARTIFACT_LOCAL_PATH", tempfile.mkdtemp(prefix="neucleus-test-artifacts-"))
 os.environ.setdefault("OPENCLAW_GATEWAY_TOKEN", "test-token-not-real")
 
 import pytest  # noqa: E402

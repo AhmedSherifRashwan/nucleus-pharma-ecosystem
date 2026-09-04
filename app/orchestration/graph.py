@@ -14,7 +14,9 @@ decides completion.
 from __future__ import annotations
 
 import asyncio
+import time
 import uuid
+from pathlib import Path
 from typing import Any, Literal
 
 from langgraph.graph import END, START, StateGraph
@@ -33,9 +35,11 @@ from app.orchestration.specialist_runner import (
 )
 from app.orchestration.state import RunState
 from app.orchestration.synthesis import run_quality_gate, synthesize
+from app.reports.service import get_report_service
 from app.schemas.planning import RunBudget
 from app.schemas.specialist import SpecialistResult
 from app.slack import blocks as slack_blocks
+from app.slack import progress as slack_progress
 from app.slack.notifier import get_notifier
 from app.storage.db import session_scope
 from app.storage.repositories import (
@@ -71,6 +75,51 @@ def _run_uuid(state: RunState) -> uuid.UUID:
 
 def _agent_names() -> dict[str, str]:
     return {p.id: p.name for p in get_registry().all_profiles()}
+
+
+async def _progress(state: RunState, stage: str) -> str | None:
+    """Post or update the live progress message for this run.
+
+    Edited in place rather than re-posted, so a multi-minute run does not bury
+    the thread. Never raises: progress is a courtesy, not the deliverable.
+    """
+    channel = state.get("slack_channel")
+    if not channel:
+        return state.get("slack_progress_ts")
+
+    try:
+        async with session_scope() as session:
+            rows = await RunRepository(session).list_tasks(_run_uuid(state))
+    except Exception:
+        rows = []
+
+    names = _agent_names()
+    tasks = [
+        slack_progress.TaskProgress(
+            agent_id=r.agent_id,
+            agent_name=names.get(r.agent_id, r.agent_id),
+            objective=r.objective,
+            status=r.status,
+            execution_group=r.execution_group,
+        )
+        for r in rows
+    ]
+    elapsed = int(time.time() - (state.get("started_epoch") or time.time()))
+    run_ref = state.get("run_ref") or "Run"
+    blocks = slack_progress.render(run_ref, tasks, stage, elapsed)
+    fallback = f"{run_ref}: {slack_progress.STAGE_LABELS.get(stage, stage)}"
+
+    notifier = get_notifier()
+    existing = state.get("slack_progress_ts")
+    if existing:
+        await notifier.update(channel=channel, ts=existing, blocks=blocks, text=fallback)
+        return existing
+    return await notifier.post(
+        channel=channel,
+        blocks=blocks,
+        text=fallback,
+        thread_ts=state.get("slack_thread_ts"),
+    )
 
 
 async def _notify(state: RunState, blocks: list[dict[str, Any]], fallback: str) -> str | None:
@@ -109,7 +158,15 @@ async def intake(state: RunState) -> dict[str, Any]:
             metadata={"request_chars": len(state["user_request"])},
         )
     log.info("stage_intake", chars=len(state["user_request"]))
-    return {"current_stage": "intake", "status": "planning", "budgets": _budget(state)}
+    started = time.time()
+    ts = await _progress({**state, "started_epoch": started}, "plan")
+    return {
+        "current_stage": "intake",
+        "status": "planning",
+        "budgets": _budget(state),
+        "started_epoch": started,
+        "slack_progress_ts": ts,
+    }
 
 
 async def load_project_context(state: RunState) -> dict[str, Any]:
@@ -208,7 +265,9 @@ async def validate_plan_node(state: RunState) -> dict[str, Any]:
         await repo.save_plan(run_id, plan)
         await repo.create_tasks(run_id, plan, state.get("execution_groups") or [])
         await repo.set_stage(run_id, "plan_validated")
-    return {"current_stage": "plan_validated"}
+
+    ts = await _progress({**state, "current_stage": "plan_validated"}, "dispatch")
+    return {"current_stage": "plan_validated", "slack_progress_ts": ts}
 
 
 def route_after_validation(
@@ -343,6 +402,7 @@ async def dispatch(state: RunState) -> dict[str, Any]:
                 upstream = [summaries[dep] for dep in (task.depends_on or []) if dep in summaries]
                 envelope = build_envelope(
                     run_id=run_id,
+                    run_ref=state.get("run_ref"),
                     task_id=task.planner_task_id,
                     profile=profile,
                     objective=task.objective,
@@ -362,6 +422,7 @@ async def dispatch(state: RunState) -> dict[str, Any]:
                     )
                     return task, exc
 
+        await _progress(state, "dispatch")
         outcomes = await asyncio.gather(*(run_one(t) for t in group))
 
         async with session_scope() as s:
@@ -417,6 +478,7 @@ async def dispatch(state: RunState) -> dict[str, Any]:
                     f"{result.agent_id}/{result.task_id}: {v}" for v in outcome.evidence_violations
                 )
 
+    await _progress(state, "collect_results")
     evidence = sorted({e.evidence_id for r in all_results for e in r.evidence_refs})
     artifacts = sorted({a for r in all_results for a in r.artifacts})
 
@@ -483,6 +545,7 @@ async def challenge_node(state: RunState) -> dict[str, Any]:
 
     async with session_scope() as s:
         await RunRepository(s).set_stage(run_id, "challenge", status="challenging")
+    await _progress(state, "challenge")
 
     outcome = await challenge_results(
         state["user_request"],
@@ -555,6 +618,7 @@ async def synthesis_node(state: RunState) -> dict[str, Any]:
 
     async with session_scope() as s:
         await RunRepository(s).set_stage(run_id, "synthesis", status="synthesizing")
+    await _progress(state, "synthesis")
 
     outcome = await synthesize(
         state["user_request"],
@@ -731,6 +795,60 @@ async def human_decision(state: RunState) -> dict[str, Any]:
     }
 
 
+async def build_report(state: RunState) -> dict[str, Any]:
+    """Assemble the DOCX deliverable (s18, Phase 12).
+
+    Deterministic: the report is built from persisted records, not regenerated
+    prose. A report that cannot be produced is reported as such — the run does
+    not quietly complete without its deliverable.
+    """
+    run_id = _run_uuid(state)
+    brief = state.get("executive_brief")
+    if brief is None:
+        return {"current_stage": "report_skipped"}
+
+    await _progress(state, "reporting")
+    project_id = state.get("project_id")
+    try:
+        result, warnings = await get_report_service().generate(
+            run_id=run_id,
+            run_ref=state.get("run_ref") or str(run_id),
+            brief=brief,
+            results=state.get("specialist_results") or [],
+            agent_names=_agent_names(),
+            project_id=uuid.UUID(project_id) if project_id else None,
+        )
+    except Exception as exc:  # noqa: BLE001 - report failure must not lose the analysis
+        log.error("report_failed", error=str(exc)[:300])
+        async with session_scope() as s:
+            await AuditRepository(s).record(
+                event_type=EventType.RUN_REVIEW_REQUIRED,
+                actor_type="system",
+                run_id=run_id,
+                metadata={"reason": "report_generation_failed", "error": str(exc)[:300]},
+            )
+        return {
+            "current_stage": "report_failed",
+            "report_error": f"The report could not be generated: {exc}",
+        }
+
+    paths = [str(result.path)]
+    channel = state.get("slack_channel")
+    if channel:
+        await get_notifier().upload_file(
+            channel=channel,
+            path=result.path,
+            title=result.filename,
+            comment=f"{state.get('run_ref') or 'Run'} — Executive Decision Brief v{result.version}",
+            thread_ts=state.get("slack_thread_ts"),
+        )
+    return {
+        "current_stage": "report_built",
+        "report_paths": paths,
+        "report_warnings": warnings,
+    }
+
+
 async def persist_final(state: RunState) -> dict[str, Any]:
     run_id = _run_uuid(state)
     brief = state.get("executive_brief")
@@ -740,7 +858,12 @@ async def persist_final(state: RunState) -> dict[str, Any]:
 
     if brief is None:
         status, summary = "failed", None
-    elif (gate is not None and gate.review_required) or brief.review_required or failed:
+    elif (
+        (gate is not None and gate.review_required)
+        or brief.review_required
+        or failed
+        or state.get("report_error")
+    ):
         status = "review_required"
         summary = brief.executive_conclusion
     else:
@@ -771,16 +894,23 @@ async def persist_final(state: RunState) -> dict[str, Any]:
                 "quality_gate_reasons": gate.reasons if gate else [],
             },
         )
+    await _progress(state, "finished")
+
     if brief is not None:
+        blocks = slack_blocks.executive_brief(
+            state.get("run_ref") or "Run",
+            brief,
+            _agent_names(),
+            evidence_count=len(state.get("evidence_refs") or []),
+            # The file itself is uploaded to the thread; the message names it.
+            report_paths=[Path(p).name for p in (state.get("report_paths") or [])],
+        )
+        report_error = state.get("report_error")
+        if report_error:
+            blocks.insert(1, slack_blocks.section(f":warning: {report_error}"))
         await _notify(
             state,
-            slack_blocks.executive_brief(
-                state.get("run_ref") or "Run",
-                brief,
-                _agent_names(),
-                evidence_count=len(state.get("evidence_refs") or []),
-                report_paths=state.get("report_paths") or [],
-            ),
+            blocks,
             f"{state.get('run_ref') or 'Run'}: {brief.executive_conclusion[:200]}",
         )
     else:
@@ -836,6 +966,7 @@ def build_graph() -> StateGraph:
     g.add_node("synthesis", synthesis_node)
     g.add_node("quality_gate", quality_gate_node)
     g.add_node("human_decision", human_decision)
+    g.add_node("build_report", build_report)
     g.add_node("persist_final", persist_final)
     g.add_node("finish_failed", finish_failed)
     g.add_node("finish_cancelled", finish_cancelled)
@@ -875,9 +1006,10 @@ def build_graph() -> StateGraph:
     g.add_conditional_edges(
         "quality_gate",
         route_after_quality_gate,
-        {"human_decision": "human_decision", "persist_final": "persist_final"},
+        {"human_decision": "human_decision", "persist_final": "build_report"},
     )
-    g.add_edge("human_decision", "persist_final")
+    g.add_edge("human_decision", "build_report")
+    g.add_edge("build_report", "persist_final")
     g.add_edge("persist_final", END)
     g.add_edge("finish_failed", END)
     g.add_edge("finish_cancelled", END)

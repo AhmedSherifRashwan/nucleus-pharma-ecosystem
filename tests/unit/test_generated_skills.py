@@ -77,9 +77,14 @@ def test_provisional_skills_say_so(registry):
 
 
 def test_no_stale_skill_directories(registry):
+    """Only generated directories are managed; hand-written ones are left alone."""
     expected = {skill_dir(p).name for p in registry.all_profiles()}
-    found = {d.name for d in SKILLS_ROOT.glob("neucleus-*") if d.is_dir()}
-    assert found == expected
+    generated = set()
+    for d in SKILLS_ROOT.glob("neucleus-*"):
+        f = d / "SKILL.md"
+        if d.is_dir() and f.is_file() and "GENERATED FILE" in f.read_text():
+            generated.add(d.name)
+    assert generated == expected
 
 
 def test_regenerating_is_idempotent(registry):

@@ -27,6 +27,9 @@ from app.config import Settings, get_settings
 log = get_logger(__name__)
 
 SLACK_POST_MESSAGE = "https://slack.com/api/chat.postMessage"
+SLACK_UPDATE_MESSAGE = "https://slack.com/api/chat.update"
+SLACK_GET_UPLOAD_URL = "https://slack.com/api/files.getUploadURLExternal"
+SLACK_COMPLETE_UPLOAD = "https://slack.com/api/files.completeUploadExternal"
 OPENCLAW_CONFIG = "~/.openclaw/openclaw.json"
 
 
@@ -62,6 +65,109 @@ class SlackNotifier:
     def enabled(self) -> bool:
         return bool(self._token)
 
+    async def _call(self, url: str, payload: dict[str, Any]) -> dict[str, Any] | None:
+        if not self._token:
+            log.warning("slack_delivery_skipped", reason="no bot token configured")
+            return None
+        try:
+            async with httpx.AsyncClient(timeout=20) as client:
+                response = await client.post(
+                    url,
+                    headers={
+                        "Authorization": f"Bearer {self._token}",
+                        "Content-Type": "application/json; charset=utf-8",
+                    },
+                    json=payload,
+                )
+            body = response.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            log.warning("slack_delivery_failed", error=str(exc)[:200])
+            return None
+        if not body.get("ok"):
+            log.warning("slack_delivery_rejected", error=body.get("error"), url=url)
+            return None
+        return body
+
+    async def update(
+        self, *, channel: str, ts: str, blocks: list[dict[str, Any]], text: str
+    ) -> bool:
+        """Edit an existing message in place.
+
+        Progress is edited rather than re-posted so a multi-minute run does not
+        bury the thread in a dozen near-identical updates.
+        """
+        body = await self._call(
+            SLACK_UPDATE_MESSAGE,
+            {"channel": channel, "ts": ts, "blocks": blocks, "text": text[:3000]},
+        )
+        return body is not None
+
+    async def upload_file(
+        self,
+        *,
+        channel: str,
+        path: Path | str,
+        title: str | None = None,
+        comment: str | None = None,
+        thread_ts: str | None = None,
+    ) -> bool:
+        """Upload a file into the thread using Slack's external-upload flow.
+
+        The report is the deliverable (s18); a path in a message is useless to a
+        client who is not sitting at this machine. Returns False rather than
+        raising: a delivered brief with an undelivered attachment is still worth
+        more than a failed run.
+        """
+        file_path = Path(path)
+        if not self._token:
+            log.warning("slack_upload_skipped", reason="no bot token configured")
+            return False
+        if not file_path.is_file():
+            log.warning("slack_upload_skipped", reason="file missing", path=str(file_path))
+            return False
+
+        size = file_path.stat().st_size
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                headers = {"Authorization": f"Bearer {self._token}"}
+                ticket = await client.post(
+                    SLACK_GET_UPLOAD_URL,
+                    headers=headers,
+                    data={"filename": file_path.name, "length": str(size)},
+                )
+                ticket_body = ticket.json()
+                if not ticket_body.get("ok"):
+                    log.warning("slack_upload_rejected", error=ticket_body.get("error"))
+                    return False
+
+                upload = await client.post(
+                    ticket_body["upload_url"],
+                    files={"file": (file_path.name, file_path.read_bytes())},
+                )
+                upload.raise_for_status()
+
+                payload: dict[str, Any] = {
+                    "files": json.dumps(
+                        [{"id": ticket_body["file_id"], "title": title or file_path.name}]
+                    ),
+                    "channel_id": channel,
+                }
+                if comment:
+                    payload["initial_comment"] = comment
+                if thread_ts:
+                    payload["thread_ts"] = thread_ts
+                complete = await client.post(SLACK_COMPLETE_UPLOAD, headers=headers, data=payload)
+                complete_body = complete.json()
+        except (httpx.HTTPError, ValueError, KeyError, OSError) as exc:
+            log.warning("slack_upload_failed", error=str(exc)[:200])
+            return False
+
+        if not complete_body.get("ok"):
+            log.warning("slack_upload_rejected", error=complete_body.get("error"))
+            return False
+        log.info("slack_file_uploaded", filename=file_path.name, bytes=size)
+        return True
+
     async def post(
         self,
         *,
@@ -75,10 +181,6 @@ class SlackNotifier:
         `text` is the notification fallback and must summarise the blocks: Slack
         shows it in notifications and to clients that cannot render Block Kit.
         """
-        if not self._token:
-            log.warning("slack_delivery_skipped", reason="no bot token configured")
-            return None
-
         payload: dict[str, Any] = {
             "channel": channel,
             "blocks": blocks,
@@ -88,33 +190,8 @@ class SlackNotifier:
         }
         if thread_ts:
             payload["thread_ts"] = thread_ts
-
-        try:
-            async with httpx.AsyncClient(timeout=20) as client:
-                response = await client.post(
-                    SLACK_POST_MESSAGE,
-                    headers={
-                        "Authorization": f"Bearer {self._token}",
-                        "Content-Type": "application/json; charset=utf-8",
-                    },
-                    json=payload,
-                )
-            body = response.json()
-        except (httpx.HTTPError, ValueError) as exc:
-            log.warning("slack_delivery_failed", error=str(exc)[:200], channel=channel)
-            return None
-
-        if not body.get("ok"):
-            # Surfaced, never silent: a missing scope or bad channel is actionable.
-            log.warning(
-                "slack_delivery_rejected",
-                error=body.get("error"),
-                channel=channel,
-                thread_ts=thread_ts,
-            )
-            return None
-
-        return body.get("ts")
+        body = await self._call(SLACK_POST_MESSAGE, payload)
+        return body.get("ts") if body else None
 
 
 _notifier: SlackNotifier | None = None

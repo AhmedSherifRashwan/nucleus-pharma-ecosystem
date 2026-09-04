@@ -120,12 +120,22 @@ def generate(check_only: bool = False) -> int:
             written += 1
 
     # A profile removed from the registry must not leave a stale skill behind.
+    # Only directories this script generated are considered: hand-written skills
+    # under the same prefix (neucleus-tools, for instance) are left alone.
     for existing in SKILLS_ROOT.glob(f"{SKILL_PREFIX}-*"):
-        if existing.is_dir() and existing not in expected_dirs:
-            if check_only:
-                drift.append(f"{existing} is stale (no matching profile)")
-            else:
-                shutil.rmtree(existing)
+        if not existing.is_dir() or existing in expected_dirs:
+            continue
+        skill_file = existing / "SKILL.md"
+        was_generated = (
+            skill_file.is_file()
+            and "GENERATED FILE - DO NOT EDIT" in skill_file.read_text(encoding="utf-8")
+        )
+        if not was_generated:
+            continue
+        if check_only:
+            drift.append(f"{existing} is stale (no matching profile)")
+        else:
+            shutil.rmtree(existing)
 
     if check_only:
         if drift:

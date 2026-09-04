@@ -297,7 +297,7 @@ class Artifact(Base, TimestampMixin):
     )
     kind: Mapped[str] = mapped_column(String(32), default="work_product", nullable=False)
     title: Mapped[str] = mapped_column(Text, nullable=False)
-    content_type: Mapped[str] = mapped_column(String(64), default="text/markdown")
+    content_type: Mapped[str] = mapped_column(String(128), default="text/markdown")
     storage_backend: Mapped[str] = mapped_column(String(32), default="local")
     storage_path: Mapped[str | None] = mapped_column(Text)
     size_bytes: Mapped[int | None] = mapped_column(Integer)

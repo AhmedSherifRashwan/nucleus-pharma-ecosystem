@@ -79,8 +79,14 @@ class RunState(TypedDict, total=False):
     executive_brief: ExecutiveDecisionBrief | None
     quality_gate: QualityGateResult | None
 
-    # Reporting
+    # Reporting (s18)
     report_paths: list[str]
+    report_warnings: list[str]
+    report_error: str | None
+
+    # Slack progress (s17.1)
+    slack_progress_ts: str | None
+    started_epoch: float
 
     # Control
     budgets: RunBudget

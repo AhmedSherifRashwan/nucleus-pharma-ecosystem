@@ -38,8 +38,24 @@ class FakeClient:
         self._results = list(results)
         self.calls: list[dict] = []
 
-    async def run_specialist(self, *, system, user, result_schema, idempotency_key=None):
-        self.calls.append({"system": system, "user": user, "idempotency_key": idempotency_key})
+    async def run_specialist(
+        self,
+        *,
+        system,
+        user,
+        result_schema,
+        idempotency_key=None,
+        session_key=None,
+        timeout_seconds=None,
+    ):
+        self.calls.append(
+            {
+                "system": system,
+                "user": user,
+                "idempotency_key": idempotency_key,
+                "session_key": session_key,
+            }
+        )
         result = self._results.pop(0)
         info = RouteInfo(
             route=AgentRoute.SPECIALIST,
@@ -272,3 +288,33 @@ async def test_downstream_summary_omits_working_detail(registry):
     # The next specialist gets conclusions, not the full working detail.
     assert "findings" not in summary
     assert "Detailed internal reasoning" not in str(summary)
+
+
+# -- session isolation (s10.3) -----------------------------------------------
+
+
+async def test_each_task_gets_its_own_session(registry):
+    """Parallel specialists share one OpenClaw agent; without a per-task session
+    key they would see each other's conversation history."""
+    runner, client = _runner(registry, _result())
+    await runner.run(registry.get("A07"), _envelope(registry, task_id="T3"))
+    assert client.calls[0]["session_key"] == "agent:pharma-specialist:run-1-T3"
+
+
+async def test_the_correction_turn_stays_in_the_same_session(registry):
+    """The fix-up must see the original task, so it shares the session."""
+    bad = _result(findings=[Finding(statement="Bloom is 180.", basis="fact")])
+    good = _result(
+        findings=[
+            Finding(
+                statement="Bloom is 180.",
+                basis="fact",
+                evidence_refs=[EvidenceRef(evidence_id="E-1")],
+            )
+        ]
+    )
+    runner, client = _runner(registry, bad, good)
+    await runner.run(registry.get("A07"), _envelope(registry, task_id="T3"))
+    assert client.calls[0]["session_key"] == client.calls[1]["session_key"]
+    # but distinct idempotency keys, so the gateway does not replay the first turn
+    assert client.calls[0]["idempotency_key"] != client.calls[1]["idempotency_key"]

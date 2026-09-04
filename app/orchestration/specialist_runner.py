@@ -117,9 +117,20 @@ def build_task_message(task: TaskEnvelope, profile: AgentProfile) -> str:
     if task.allowed_tools:
         parts += [
             "",
-            "Tools available to you: " + ", ".join(task.allowed_tools),
-            "Use only these. If you need a capability you do not have, say so in "
-            "`information_required` rather than describing a call you did not make.",
+            "<tools>",
+            "Your context for every tool call is: " + (task.tool_context or "unavailable"),
+            "",
+            "Available to you: " + ", ".join(task.allowed_tools),
+            "",
+            "Invoke them through the neucleus-tools skill, for example:",
+            "  uv run python -m app.tools.cli calculator "
+            f'--context "{task.tool_context}" --expression "250 / 800 * 100"',
+            "",
+            "Use only the tools listed. If you need a capability you do not have, "
+            "record it in `information_required` rather than describing a call you "
+            "did not make. Record a source with save_evidence BEFORE citing its id "
+            "in a finding, and only for sources you actually consulted.",
+            "</tools>",
         ]
     else:
         parts += [
@@ -180,11 +191,15 @@ class SpecialistRunner:
             tools=len(task.allowed_tools),
         )
 
+        # One session per task: parallel specialists must not share history.
+        session_key = f"agent:pharma-specialist:{task.run_id}-{task.task_id}"
+
         result, usage, route = await self._client.run_specialist(
             system=system,
             user=message,
             result_schema=SpecialistResult,
             idempotency_key=key,
+            session_key=session_key,
         )
 
         violations = find_evidence_violations(result) if enforce_evidence else []
@@ -202,6 +217,7 @@ class SpecialistRunner:
                 user=f"{message}\n\n---\n{build_evidence_correction(violations)}",
                 result_schema=SpecialistResult,
                 idempotency_key=f"{key}:evidence-fix",
+                session_key=session_key,
             )
             usage = usage + retry_usage
             corrected = True
@@ -246,12 +262,16 @@ def build_envelope(
     project_context_summary: str | None = None,
     upstream_findings: list[dict] | None = None,
     source_document_refs: list[str] | None = None,
+    run_ref: str | None = None,
     max_steps: int | None = None,
 ) -> TaskEnvelope:
     """Assemble a task envelope from a profile, applying its own limits."""
     return TaskEnvelope(
         run_id=str(run_id),
         task_id=task_id,
+        # The tool context a specialist must quote back. Tools verify it against
+        # the database, so a specialist cannot write outside its own task.
+        tool_context=f"{run_ref}:{task_id}" if run_ref else None,
         agent_id=profile.id,
         objective=objective,
         required_output=required_output,

@@ -7,6 +7,7 @@ quality gate and the fail-closed behaviour.
 from __future__ import annotations
 
 import uuid
+from pathlib import Path
 
 import pytest
 from langgraph.checkpoint.memory import InMemorySaver
@@ -21,7 +22,7 @@ from app.schemas.executive import ChallengeResult, Contradiction, DecisionRequir
 from app.schemas.planning import Plan, PlannedTask
 from app.storage.db import session_scope
 from app.storage.models import Approval, Run
-from app.storage.repositories import AuditRepository, RunRepository
+from app.storage.repositories import ArtifactRepository, AuditRepository, RunRepository
 from tests.integration.conftest import requires_db
 from tests.integration.fakes import FakeGateway, brief, specialist_result
 
@@ -133,7 +134,7 @@ async def test_dependent_specialist_receives_upstream_summaries(monkeypatch):
     captured: dict[str, str] = {}
 
     class Capturing(FakeGateway):
-        async def run_specialist(self, *, system, user, result_schema, **kw):
+        async def run_specialist(self, *, system, user, result_schema, **kw):  # noqa: D401
             if "quality governance" in user:
                 captured["message"] = user
             return await super().run_specialist(
@@ -366,6 +367,35 @@ async def test_green_brief_needs_no_final_decision(monkeypatch):
     final = await app.ainvoke(initial(run_id, run_ref), config=config(run_id))
     assert final["status"] == "complete"
     assert "__interrupt__" not in final
+
+
+async def test_a_completed_run_produces_a_report_artifact(monkeypatch):
+    """s18: the DOCX is the deliverable, not an optional extra."""
+    run_id, run_ref = await make_run()
+    gw = FakeGateway(
+        four_task_plan(),
+        results_by_marker=DEFAULT_RESULTS,
+        executive_brief=brief(decisions_required_from_user=[]),
+    )
+    wire(monkeypatch, gw)
+
+    app = compile_graph(InMemorySaver())
+    final = await app.ainvoke(initial(run_id, run_ref), config=config(run_id))
+
+    assert final["status"] == "complete"
+    paths = final.get("report_paths") or []
+    assert len(paths) == 1
+    report = Path(paths[0])
+    assert report.is_file() and report.suffix == ".docx"
+    assert report.name.endswith("_v1.docx")
+
+    async with session_scope() as s:
+        artifacts = [
+            a for a in await ArtifactRepository(s).list_for_run(run_id) if a.kind == "report"
+        ]
+        events = await AuditRepository(s).event_types_for_run(run_id)
+    assert [a.version for a in artifacts] == [1]
+    assert "report.generated" in events
 
 
 # -- challenge and follow-ups (s9.2) -----------------------------------------

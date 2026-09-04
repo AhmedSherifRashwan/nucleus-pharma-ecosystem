@@ -1,0 +1,47 @@
+{
+  "display_information": {
+    "name": "Neucleus",
+    "description": "Specialist AI ecosystem for generic oral softgel development.",
+    "background_color": "#1a2332",
+    "long_description": "Neucleus converts a request in Slack into a controlled programme of work across a network of specialist pharmaceutical AI agents. It plans the work, runs the relevant specialists, challenges contradictions between them, and returns an Executive Decision Brief plus a DOCX report. Every run, evidence item, assumption, conflict and human decision is persisted for traceability. Neucleus is advisory: it never executes a regulatory submission, batch release or any other binding action without explicit human approval."
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "Neucleus",
+      "always_online": true
+    },
+    "app_home": {
+      "home_tab_enabled": false,
+      "messages_tab_enabled": false,
+      "messages_tab_read_only_enabled": true
+    }
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "app_mentions:read",
+        "chat:write",
+        "channels:history",
+        "channels:read",
+        "files:write",
+        "users:read",
+        "reactions:write",
+        "groups:history",
+        "groups:read"
+      ]
+    }
+  },
+  "settings": {
+    "event_subscriptions": {
+      "bot_events": [
+        "app_mention"
+      ]
+    },
+    "interactivity": {
+      "is_enabled": true
+    },
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": true,
+    "token_rotation_enabled": false
+  }
+}

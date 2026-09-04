@@ -5,22 +5,75 @@ requirements are flagged here rather than invented.
 
 ## Open — need client/user input
 
-### D-001 · OpenClaw gateway contract is UNVERIFIED · **blocking Phase 3**
-PRD §28.3 sketches `POST /v1/responses` with `x-openclaw-agent-id` and a
-`openclaw/<agent>` model string. This was not verifiable at build time: the
-gateway was not installed, and the PRD's own Appendix C says interfaces "must be
-verified against the pinned versions selected at build time."
+### D-001 · OpenClaw gateway contract — **RESOLVED, and the PRD is wrong**
+Verified live against OpenClaw 2026.9.1 (ad6fe23) on 4 Sep 2026.
 
-*Status:* OpenClaw **2026.9.1 (ad6fe23)** is now installed at `~/.openclaw/bin`
-(it was missing from `PATH`; the installer does not write to `~/.zshrc`).
-Onboarding and the Slack plugin install are still outstanding.
+**PRD §28.3 is incorrect.** There is no `POST /v1/responses`:
 
-*Consequence:* `app/providers/openclaw_client.py` ships as an interface skeleton.
-`build_request` / `build_headers` encode the §28.3 sketch and are unit-tested for
-*shape*, not correctness. The transport raises `GatewayNotConfigured`.
+| PRD §28.3 says | Reality |
+|---|---|
+| `POST http://127.0.0.1:18789/v1/responses` | **404.** No such route. |
+| `/openai/v1/responses` | 404 on POST; GET returns the Control UI SPA fallback. |
+| HTTP + `x-openclaw-agent-id` header | The gateway is a **WebSocket JSON-RPC** service. |
 
-*To close:* run the gateway, confirm the real request/response envelope, usage
-counters and error codes, then implement transport in Phase 3.
+**The verified contract** is RPC method `agent` over the WebSocket gateway:
+
+```
+params: {
+  agentId:        "pharma-specialist",   # the logical route (s7.3)
+  message:        "<prompt>",
+  idempotencyKey: "<unique>"             # REQUIRED by the gateway
+}
+```
+
+```
+result: {
+  runId, status: "ok", summary: "completed",
+  result: {
+    payloads: [{ text, mediaUrl }],
+    meta: {
+      durationMs,
+      finalAssistantVisibleText,
+      systemPromptReport: { provider, model, sessionKey, sessionId, workspaceDir, ... }
+    }
+  }
+}
+```
+
+*Consequences for the build:*
+- `openclaw_client.py` must speak WebSocket JSON-RPC, not HTTP POST. `build_request`
+  and `build_headers` encode the wrong contract and must be replaced in Phase 3.
+- `OPENCLAW_GATEWAY_URL` should be a `ws://` URL, not `http://`.
+- The gateway **requires** an idempotency key on every turn — this aligns with §31.2
+  and should carry the run/task identity rather than a random value.
+- `meta.systemPromptReport` returns `provider` and `model`, which satisfies §20's
+  requirement that a run record which route produced it.
+- No token counters were observed in the response. §22 telemetry is therefore
+  best-effort, as the PRD itself allows ("where provider counters are available").
+
+*Working invocation for reference:*
+`openclaw gateway call agent --params '{...}' --expect-final --timeout 120000 --json`
+
+### D-011 · Route configuration — resolved and verified
+Both routes are live end-to-end as of 4 Sep 2026:
+
+| Route | OpenClaw agent | Model | Runtime | Verified |
+|---|---|---|---|---|
+| Executive | `pharma-executive` | `openai/gpt-5.4` | codex harness | `ROUTE OK` |
+| Specialist | `pharma-specialist` | `anthropic/claude-sonnet-5` | `claude-cli` | `RPC OK` |
+
+Three fixes were needed beyond the documented setup:
+1. The `codex` harness plugin is **not installed by onboarding**. Without it every
+   OpenAI turn fails with `owner-plugin-not-activatable`. Installed from
+   `clawhub:@openclaw/codex` v2026.9.1.
+2. Anthropic auth must be selected interactively; `--method anthropic-cli` is
+   rejected as an unknown method id. The interactive picker's "Claude CLI" option
+   sets `agentRuntime: claude-cli` on every Anthropic model.
+3. `capability model run --local` fails for Claude with "no API key found" because
+   the CLI runtime is an *agent* harness. Turns must go through the gateway.
+
+*Still outstanding:* Slack is `enabled, not configured, stopped`; no command owner
+is set (blocks §16 approvals); the Slack-routed agent lacks the `message` tool.
 
 ### D-004 · Subscription auth vs provider terms
 §20.1 makes subscription auth (ChatGPT/Codex OAuth, Claude CLI reuse) the default

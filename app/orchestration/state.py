@@ -84,8 +84,8 @@ class RunState(TypedDict, total=False):
     report_warnings: list[str]
     report_error: str | None
 
-    # Slack progress (s17.1)
-    slack_progress_ts: str | None
+    # Slack progress (s17.1). Progress is narrated as a stream of messages, so
+    # there is no single message id to carry.
     started_epoch: float
 
     # Control

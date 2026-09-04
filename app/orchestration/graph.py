@@ -77,24 +77,15 @@ def _agent_names() -> dict[str, str]:
     return {p.id: p.name for p in get_registry().all_profiles()}
 
 
-async def _progress(state: RunState, stage: str) -> str | None:
-    """Post or update the live progress message for this run.
-
-    Edited in place rather than re-posted, so a multi-minute run does not bury
-    the thread. Never raises: progress is a courtesy, not the deliverable.
-    """
-    channel = state.get("slack_channel")
-    if not channel:
-        return state.get("slack_progress_ts")
-
+async def _task_progress(state: RunState) -> list[slack_progress.TaskProgress]:
+    """Live task state for the progress bar. Never raises into orchestration."""
     try:
         async with session_scope() as session:
             rows = await RunRepository(session).list_tasks(_run_uuid(state))
     except Exception:
-        rows = []
-
+        return []
     names = _agent_names()
-    tasks = [
+    return [
         slack_progress.TaskProgress(
             agent_id=r.agent_id,
             agent_name=names.get(r.agent_id, r.agent_id),
@@ -104,22 +95,68 @@ async def _progress(state: RunState, stage: str) -> str | None:
         )
         for r in rows
     ]
+
+
+async def _progress(
+    state: RunState,
+    stage: str,
+    *,
+    headline: str | None = None,
+    detail: str | None = None,
+    bullets: list[str] | None = None,
+    tasks: list[slack_progress.TaskProgress] | None = None,
+) -> str | None:
+    """Post one progress message saying what just changed (s17.1).
+
+    A new message rather than an edit: an edited message gives no notification and
+    is invisible to anyone who has scrolled past it, so a long run looks stalled
+    even while it works. Never raises - progress is a courtesy, not the deliverable.
+    """
+    channel = state.get("slack_channel")
+    if not channel:
+        return None
+
+    if tasks is None:
+        tasks = await _task_progress(state)
     elapsed = int(time.time() - (state.get("started_epoch") or time.time()))
     run_ref = state.get("run_ref") or "Run"
-    blocks = slack_progress.render(run_ref, tasks, stage, elapsed)
-    fallback = f"{run_ref}: {slack_progress.STAGE_LABELS.get(stage, stage)}"
+    label = headline or slack_progress.STAGE_LABELS.get(stage, stage.replace("_", " "))
 
-    notifier = get_notifier()
-    existing = state.get("slack_progress_ts")
-    if existing:
-        await notifier.update(channel=channel, ts=existing, blocks=blocks, text=fallback)
-        return existing
-    return await notifier.post(
+    blocks = slack_progress.event(
+        run_ref,
+        label,
+        stage=stage,
+        tasks=tasks,
+        elapsed_seconds=elapsed,
+        detail=detail,
+        bullets=bullets,
+    )
+    return await get_notifier().post(
         channel=channel,
         blocks=blocks,
-        text=fallback,
+        text=f"{run_ref}: {label}",
         thread_ts=state.get("slack_thread_ts"),
     )
+
+
+async def _specialist_event(
+    state: RunState,
+    task: Any,
+    status: str,
+    *,
+    findings: int = 0,
+    evidence: int = 0,
+) -> None:
+    """Say what a specialist just finished, as it finishes.
+
+    Posted from inside the fan-out so a parallel group reports each result when it
+    lands rather than all of them at the end.
+    """
+    names = _agent_names()
+    headline, detail = slack_progress.specialist_finished(
+        names.get(task.agent_id, task.agent_id), status, findings=findings, evidence=evidence
+    )
+    await _progress(state, "dispatch", headline=headline, detail=detail)
 
 
 async def _notify(state: RunState, blocks: list[dict[str, Any]], fallback: str) -> str | None:
@@ -159,13 +196,18 @@ async def intake(state: RunState) -> dict[str, Any]:
         )
     log.info("stage_intake", chars=len(state["user_request"]))
     started = time.time()
-    ts = await _progress({**state, "started_epoch": started}, "plan")
+    await _progress(
+        {**state, "started_epoch": started},
+        "plan",
+        headline=":brain: Planning the specialist workstreams",
+        detail="Selecting which specialists the request needs and how their work depends "
+        "on each other.",
+    )
     return {
         "current_stage": "intake",
         "status": "planning",
         "budgets": _budget(state),
         "started_epoch": started,
-        "slack_progress_ts": ts,
     }
 
 
@@ -266,8 +308,16 @@ async def validate_plan_node(state: RunState) -> dict[str, Any]:
         await repo.create_tasks(run_id, plan, state.get("execution_groups") or [])
         await repo.set_stage(run_id, "plan_validated")
 
-    ts = await _progress({**state, "current_stage": "plan_validated"}, "dispatch")
-    return {"current_stage": "plan_validated", "slack_progress_ts": ts}
+    names = _agent_names()
+    await _progress(
+        {**state, "current_stage": "plan_validated"},
+        "plan_validated",
+        headline=f":clipboard: Plan validated — {len(plan.tasks)} workstream(s)",
+        bullets=[
+            f"*{names.get(t.agent_id, t.agent_id)}* — {t.objective[:120]}" for t in plan.tasks
+        ],
+    )
+    return {"current_stage": "plan_validated"}
 
 
 def route_after_validation(
@@ -418,7 +468,15 @@ async def dispatch(state: RunState) -> dict[str, Any]:
                     max_steps=min(task.max_steps, budget.max_specialist_steps),
                 )
                 try:
-                    return task, await runner.run(profile, envelope)
+                    outcome = await runner.run(profile, envelope)
+                    await _specialist_event(
+                        state,
+                        task,
+                        outcome.result.status,
+                        findings=len(outcome.result.findings),
+                        evidence=len(outcome.result.evidence_refs),
+                    )
+                    return task, outcome
                 except Exception as exc:
                     log.warning(
                         "specialist_failed",
@@ -426,9 +484,27 @@ async def dispatch(state: RunState) -> dict[str, Any]:
                         task_id=task.planner_task_id,
                         error=str(exc)[:300],
                     )
+                    await _specialist_event(state, task, "failed")
                     return task, exc
 
-        await _progress(state, "dispatch")
+        names = _agent_names()
+        started_headline = (
+            f":arrow_forward: Starting {len(group)} workstream(s) in parallel"
+            if len(group) > 1
+            else f":arrow_forward: *{names.get(group[0].agent_id, group[0].agent_id)}* "
+            "is now working"
+        )
+        await _progress(
+            state,
+            "dispatch",
+            headline=started_headline,
+            bullets=(
+                [f"*{names.get(t.agent_id, t.agent_id)}* — {t.objective[:140]}" for t in group]
+                if len(group) > 1
+                else None
+            ),
+            detail=group[0].objective[:400] if len(group) == 1 else None,
+        )
         outcomes = await asyncio.gather(*(run_one(t) for t in group))
 
         async with session_scope() as s:
@@ -484,7 +560,16 @@ async def dispatch(state: RunState) -> dict[str, Any]:
                     f"{result.agent_id}/{result.task_id}: {v}" for v in outcome.evidence_violations
                 )
 
-    await _progress(state, "collect_results")
+    await _progress(
+        state,
+        "collect_results",
+        headline=":inbox_tray: All specialist workstreams returned",
+        detail=(
+            f"{len(all_results)} result(s) collected"
+            + (f", {len(failed)} failed" if failed else "")
+            + ". Checking them against each other for contradictions."
+        ),
+    )
     evidence = sorted({e.evidence_id for r in all_results for e in r.evidence_refs})
     artifacts = sorted({a for r in all_results for a in r.artifacts})
 
@@ -551,7 +636,13 @@ async def challenge_node(state: RunState) -> dict[str, Any]:
 
     async with session_scope() as s:
         await RunRepository(s).set_stage(run_id, "challenge", status="challenging")
-    await _progress(state, "challenge")
+    await _progress(
+        state,
+        "challenge",
+        headline=":mag: Challenging the findings",
+        detail="An independent adversarial review is looking for contradictions, "
+        "unsupported claims and missing evidence before anything is integrated.",
+    )
 
     outcome = await challenge_results(
         state["user_request"],
@@ -624,7 +715,13 @@ async def synthesis_node(state: RunState) -> dict[str, Any]:
 
     async with session_scope() as s:
         await RunRepository(s).set_stage(run_id, "synthesis", status="synthesizing")
-    await _progress(state, "synthesis")
+    await _progress(
+        state,
+        "synthesis",
+        headline=":pencil: Integrating the specialist work",
+        detail="Writing the executive conclusion, the recommendation and the "
+        "confidence assessment.",
+    )
 
     outcome = await synthesize(
         state["user_request"],
@@ -816,7 +913,13 @@ async def build_report(state: RunState) -> dict[str, Any]:
     if brief is None:
         return {"current_stage": "report_skipped"}
 
-    await _progress(state, "reporting")
+    await _progress(
+        state,
+        "reporting",
+        headline=":page_facing_up: Building the report",
+        detail="Composing the technical report from the specialists' work products, "
+        "then the Executive Decision Brief. This takes a few minutes.",
+    )
     project_id = state.get("project_id")
     project_uuid = uuid.UUID(project_id) if project_id else None
     service = get_report_service()
@@ -942,7 +1045,12 @@ async def persist_final(state: RunState) -> dict[str, Any]:
                 "quality_gate_reasons": gate.reasons if gate else [],
             },
         )
-    await _progress(state, "finished")
+    await _progress(
+        state,
+        "finished",
+        headline=":checkered_flag: Run complete",
+        detail="Delivering the documents to this thread.",
+    )
 
     if brief is not None:
         warnings = state.get("report_warnings") or []

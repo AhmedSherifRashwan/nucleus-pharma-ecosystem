@@ -93,8 +93,9 @@ class SlackNotifier:
     ) -> bool:
         """Edit an existing message in place.
 
-        Progress is edited rather than re-posted so a multi-minute run does not
-        bury the thread in a dozen near-identical updates.
+        Progress is narrated as a stream of posts rather than one edited message
+        (an edit notifies nobody and is invisible to anyone who scrolled past it),
+        so this is kept for corrections to a message already delivered.
         """
         body = await self._call(
             SLACK_UPDATE_MESSAGE,

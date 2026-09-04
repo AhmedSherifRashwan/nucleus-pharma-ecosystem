@@ -1,12 +1,17 @@
-"""Live progress rendering for a run (PRD s17.1).
+"""Live progress narration for a run (PRD s17.1).
 
-A run takes minutes. Without visible progress the user cannot tell the
-difference between "thinking" and "broken", so this shows which specialist is
-working, which stage the ecosystem is in, and an indicative time remaining.
+A run takes tens of minutes. Without visible progress the user cannot tell the
+difference between "thinking" and "broken".
 
-The estimate is explicitly indicative. It is derived from observed durations
-rather than measured per run, and is labelled as approximate wherever it is
-shown - an over-precise number would be worse than an honest range.
+Progress is narrated as a series of messages, not one message edited in place. An
+edited message is invisible to anyone who has already scrolled past it, gives no
+notification, and loses the history of what happened when. Each update says what
+just changed and carries a bar for the whole run, so a reader who joins the thread
+late still knows where things stand.
+
+The estimate is explicitly indicative. It is derived from observed durations rather
+than measured per run, and is labelled approximate wherever it is shown - an
+over-precise number would be worse than an honest range.
 """
 
 from __future__ import annotations
@@ -21,7 +26,11 @@ SECONDS_PER_SPECIALIST_GROUP = 260
 SECONDS_PLANNING = 60
 SECONDS_CHALLENGE = 120
 SECONDS_SYNTHESIS = 90
-SECONDS_REPORT = 15
+SECONDS_REPORT = 240
+
+BAR_WIDTH = 18
+BAR_FULL = "█"
+BAR_EMPTY = "░"
 
 STAGE_LABELS: dict[str, str] = {
     "intake": "Interpreting the request",
@@ -41,6 +50,31 @@ STAGE_LABELS: dict[str, str] = {
     "finished": "Complete",
 }
 
+# Roughly what fraction of a run is behind you once a stage completes. Used only
+# for the bar: it is a progress indicator, not a measurement.
+STAGE_FLOOR: dict[str, float] = {
+    "intake": 0.02,
+    "load_context": 0.04,
+    "plan": 0.06,
+    "plan_validated": 0.10,
+    "awaiting_approval": 0.10,
+    "dispatch": 0.15,
+    "collect_results": 0.60,
+    "conflict_detection": 0.62,
+    "challenge": 0.66,
+    "follow_up_tasks": 0.68,
+    "synthesis": 0.80,
+    "quality_gate": 0.86,
+    "awaiting_decision": 0.88,
+    "reporting": 0.90,
+    "finished": 1.0,
+}
+
+# Specialist work spans this band of the bar; within it the fraction tracks the
+# tasks that have actually returned.
+DISPATCH_FLOOR = 0.15
+DISPATCH_CEILING = 0.60
+
 STATUS_ICON = {
     "complete": ":white_check_mark:",
     "running": ":hourglass_flowing_sand:",
@@ -52,7 +86,8 @@ STATUS_ICON = {
 }
 
 STATUS_NOTE = {
-    "needs_information": "needs data",
+    "complete": "complete",
+    "needs_information": "needs more data",
     "blocked": "blocked",
     "failed": "failed",
 }
@@ -71,7 +106,10 @@ def format_duration(seconds: int) -> str:
     if seconds < 60:
         return f"{max(seconds, 0)}s"
     minutes, remainder = divmod(int(seconds), 60)
-    return f"{minutes}m {remainder:02d}s" if remainder else f"{minutes}m"
+    if minutes < 60:
+        return f"{minutes}m {remainder:02d}s"
+    hours, minutes = divmod(minutes, 60)
+    return f"{hours}h {minutes:02d}m"
 
 
 def estimate_remaining_seconds(tasks: list[TaskProgress], stage: str) -> int:
@@ -102,52 +140,94 @@ def estimate_label(seconds: int) -> str:
     if seconds < 90:
         return "about a minute"
     minutes = round(seconds / 60)
-    return f"about {minutes}-{minutes + 1} minutes"
+    return f"about {minutes}-{minutes + 2} minutes"
 
 
-def render(
-    run_ref: str,
-    tasks: list[TaskProgress],
-    stage: str,
-    elapsed_seconds: int,
-) -> list[dict[str, Any]]:
-    """Block Kit for a progress update."""
-    stage_label = STAGE_LABELS.get(stage, stage.replace("_", " ").title())
-
-    if tasks:
-        lines = []
-        for t in sorted(tasks, key=lambda t: (t.execution_group, t.agent_id)):
-            icon = STATUS_ICON.get(t.status, ":grey_question:")
-            note = STATUS_NOTE.get(t.status)
-            suffix = f" _({note})_" if note else ""
-            lines.append(f"{icon} *{t.agent_name}*{suffix}\n     {t.objective[:110]}")
-        body = "\n".join(lines)
-    else:
-        body = "_Selecting the specialist team…_"
+def overall_fraction(stage: str, tasks: list[TaskProgress]) -> float:
+    """How far through the run we are, for the bar."""
+    floor = STAGE_FLOOR.get(stage, 0.1)
+    if stage != "dispatch" or not tasks:
+        return min(max(floor, 0.0), 1.0)
 
     done = sum(1 for t in tasks if t.status not in ("pending", "ready", "running"))
-    counter = f"{done}/{len(tasks)} specialists" if tasks else "planning"
+    share = done / len(tasks)
+    return DISPATCH_FLOOR + (DISPATCH_CEILING - DISPATCH_FLOOR) * share
 
-    remaining = estimate_remaining_seconds(tasks, stage)
-    blocks: list[dict[str, Any]] = [
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": f"*{run_ref} — {stage_label}*\n\n{body}"[:2900],
-            },
-        },
+
+def progress_bar(fraction: float, width: int = BAR_WIDTH) -> str:
+    fraction = min(max(fraction, 0.0), 1.0)
+    filled = round(fraction * width)
+    return f"{BAR_FULL * filled}{BAR_EMPTY * (width - filled)}  {round(fraction * 100)}%"
+
+
+def status_line(
+    stage: str,
+    tasks: list[TaskProgress],
+    elapsed_seconds: int,
+    *,
+    remaining_seconds: int | None = None,
+) -> str:
+    """The bar, the counter, the clock and the estimate, on one line."""
+    fraction = overall_fraction(stage, tasks)
+    bar = progress_bar(fraction)
+    done = sum(1 for t in tasks if t.status not in ("pending", "ready", "running"))
+    counter = f"{done}/{len(tasks)} specialists" if tasks else STAGE_LABELS.get(stage, stage)
+    remaining = (
+        remaining_seconds
+        if remaining_seconds is not None
+        else estimate_remaining_seconds(tasks, stage)
+    )
+    return (
+        f"`{bar}`\n{counter} · elapsed {format_duration(elapsed_seconds)} · "
+        f"est. {estimate_label(remaining)} remaining _(approximate)_"
+    )
+
+
+def event(
+    run_ref: str,
+    headline: str,
+    *,
+    stage: str,
+    tasks: list[TaskProgress] | None = None,
+    elapsed_seconds: int = 0,
+    detail: str | None = None,
+    bullets: list[str] | None = None,
+    remaining_seconds: int | None = None,
+) -> list[dict[str, Any]]:
+    """One progress message: what just happened, and where the run stands."""
+    tasks = tasks or []
+    body = f"*{run_ref}* · {headline}"
+    if detail:
+        body += f"\n>{detail[:600]}"
+    if bullets:
+        body += "\n" + "\n".join(f"• {b}" for b in bullets)
+
+    return [
+        {"type": "section", "text": {"type": "mrkdwn", "text": body[:2900]}},
         {
             "type": "context",
             "elements": [
                 {
                     "type": "mrkdwn",
-                    "text": (
-                        f"{counter} · elapsed {format_duration(elapsed_seconds)} · "
-                        f"est. {estimate_label(remaining)} remaining _(approximate)_"
+                    "text": status_line(
+                        stage, tasks, elapsed_seconds, remaining_seconds=remaining_seconds
                     ),
                 }
             ],
         },
     ]
-    return blocks
+
+
+def specialist_started(agent_name: str, objective: str) -> tuple[str, str]:
+    return f":hourglass_flowing_sand: *{agent_name}* is now working", objective[:400]
+
+
+def specialist_finished(
+    agent_name: str, status: str, *, findings: int = 0, evidence: int = 0
+) -> tuple[str, str | None]:
+    icon = STATUS_ICON.get(status, ":grey_question:")
+    note = STATUS_NOTE.get(status, status)
+    headline = f"{icon} *{agent_name}* — {note}"
+    if status in ("complete", "needs_information") and (findings or evidence):
+        return headline, f"{findings} finding(s), {evidence} evidence item(s) recorded."
+    return headline, None

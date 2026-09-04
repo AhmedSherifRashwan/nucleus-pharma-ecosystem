@@ -7,7 +7,7 @@
 | 0 | Foundation: repo, settings, logging, models/migrations, schemas, gateway skeleton, diagnostics | **Complete** |
 | 1 | Agent Registry: A01–A16 YAML, validation, prompt versions, seed | **Complete** |
 | 2 | PostgreSQL Run Model: repositories and idempotency | Partial — tables and constraints exist; repositories pending |
-| 3 | OpenClaw Client: live `/v1/responses` transport | **Blocked on D-001** |
+| 3 | OpenClaw Client: gateway transport, routing, error normalisation | **Complete** |
 | 4 | OpenAI Planner | Not started |
 | 5 | Generic Claude Worker | Not started |
 | 6 | LangGraph Core | Not started |
@@ -76,11 +76,48 @@
   untrusted-data boundary and carries the evidence-basis rule.
 - Seeding is idempotent, snapshots the whole profile, and refuses released-prompt drift.
 
+## Phase 3 — delivered
+
+**Gates:** ruff clean · mypy clean (23 source files) · 119 tests passing, 3 live tests gated.
+
+- `app/providers/openclaw_client.py`: the verified `agent` RPC contract behind one
+  adapter. Executive/specialist/local route selection, structured output with one
+  correction attempt, normalised errors, usage capture, CLI discovery.
+- Errors are classified into `GatewayRateLimited`, `GatewayAuthError`,
+  `GatewayTransientError`, `GatewayNotConfigured` and `StructuredOutputError` so
+  orchestration branches on cause rather than on wire detail.
+- `scripts/health_check.py` now performs a real gateway probe (no tokens spent).
+- `tests/integration/test_openclaw_live.py`: gated live tests
+  (`RUN_LIVE_GATEWAY=1`).
+
+**Verified live against OpenClaw 2026.9.1:**
+- Health probe: reachable, 15 plugins, subscription auth.
+- Structured call on the specialist route returned schema-valid JSON, with
+  `provider=claude-cli` and `model=claude-sonnet-5` captured for the run record (§20).
+- A domain question (PEG 400 / polysorbate 80 dissolution slow-down) returned the
+  correct mechanism — aldehyde cross-linking of the gelatin shell.
+
+**Verified by test:**
+- Requests name a logical agent route, never a provider model (§2).
+- Every turn carries an idempotency key; correction turns get distinct keys, so a
+  retry is never replayed as the original.
+- A rate limit raises `GatewayRateLimited` and does **not** retry against another
+  route (§22: never silently switch models).
+- Invalid structured output gets exactly one correction, then fails explicitly.
+- JSON is recovered from fenced blocks, prose and nested/brace-containing strings.
+- CLI discovery honours `OPENCLAW_CLI_PATH`, falls back to the default install
+  location, and names the setting to fix when it cannot find the binary.
+
 ## Next
 
-Phase 2 (repositories over the run model) is unblocked and needs no gateway.
+OpenClaw is fully operational: both model routes verified, Slack connected to
+`#main-comms` under an allowlist, messaging tool granted.
 
-Phase 3 needs D-001 closed. OpenClaw 2026.9.1 is installed and the gateway is
-correctly configured (loopback, token auth, port 18789), but three things block a
-live route: the `codex` harness plugin is absent, no Anthropic credential is
-configured, and the `pharma-executive` / `pharma-specialist` agents do not exist yet.
+Phase 2 (repositories over the run model) and Phase 4 (planner) are both unblocked.
+
+**Phase 5 is blocked on D-013** — how §19's Python-implemented tools reach a
+specialist running inside an OpenClaw agent. That needs a decision before the
+generic specialist runtime can be built honestly.
+
+Outstanding OpenClaw item: `commands.ownerAllowFrom` is unset, which blocks §16
+approval authorisation. It needs the operator's Slack member ID.

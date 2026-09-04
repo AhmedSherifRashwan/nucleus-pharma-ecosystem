@@ -35,8 +35,13 @@ class Settings(BaseSettings):
     langgraph_database_url: str = "postgresql://ai:change-me@localhost:5432/pharma_ai"
 
     # ---- OpenClaw gateway (s7, s20, s28.3) ---------------------------------
+    # Informational only. The adapter reaches the gateway through the OpenClaw
+    # CLI, which resolves the endpoint itself (decisions.md D-012).
     openclaw_gateway_url: str = "http://127.0.0.1:18789"
     openclaw_gateway_token: str | None = None
+    # Path to the OpenClaw CLI. Left unset it is discovered: PATH first, then
+    # the default install location. A supervised worker often has a minimal PATH.
+    openclaw_cli_path: str | None = None
     openclaw_executive_agent: str = "pharma-executive"
     openclaw_specialist_agent: str = "pharma-specialist"
     openclaw_local_agent: str = "pharma-local"
@@ -71,10 +76,6 @@ class Settings(BaseSettings):
     worker_prompts_path: str = "app/prompts/workers"
     executive_prompts_path: str = "app/prompts/executive"
     enable_provisional_profiles: bool = False
-
-    @property
-    def gateway_responses_url(self) -> str:
-        return f"{self.openclaw_gateway_url.rstrip('/')}/v1/responses"
 
     @model_validator(mode="after")
     def _check_production_requirements(self) -> Settings:

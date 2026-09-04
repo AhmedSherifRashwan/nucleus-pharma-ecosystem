@@ -101,6 +101,18 @@ to `app/prompts/workers/common_v1.md`; the Slack app display name follows in Pha
 given. Confirm before the Slack app is created — a bot handle is user-visible and
 awkward to change later.
 
+### D-013 · Specialist tool binding is unresolved · **affects Phase 5**
+PRD §19 says "Tool implementations belong in Python and are explicitly bound to
+profiles". But in v3 a specialist executes *inside* an OpenClaw agent, which has
+its own tool policy. There is no mechanism in the verified `agent` RPC contract to
+inject Python-implemented tools into a turn.
+
+*Options:* expose the §19 tools to OpenClaw over MCP; implement them as OpenClaw
+skills; or have the orchestrator perform retrieval in Python and pass results into
+the task envelope as context (no tools inside the turn at all).
+
+Flagged rather than chosen. Phase 5 cannot be completed honestly without a decision.
+
 ## Resolved
 
 ### D-002 · Homebrew PostgreSQL instead of Docker
@@ -156,3 +168,22 @@ be papered over by accident.
 
 *To close:* the client supplies SDS documents for GMP Compliance and Regulatory
 Submission, or nominates two replacement roles.
+
+
+### D-012 · Gateway transport is the OpenClaw CLI, not raw HTTP or WebSocket
+The gateway opens with a `connect.challenge` nonce handshake over WebSocket. The
+response format is undocumented, and reimplementing it would break on any gateway
+upgrade.
+
+*Decision:* `app/providers/openclaw_client.py` shells out to
+`openclaw gateway call <method> --params <json> --json`. This is the supported
+entry point, handles the handshake, and keeps every OpenClaw specific behind the
+one adapter as §41.1 requires.
+
+*Trade-offs accepted:* a process spawn per turn (negligible against multi-minute
+agent turns in a single-user system); no token streaming; the CLI must be
+locatable. The last is mitigated by `OPENCLAW_CLI_PATH` plus fallback discovery,
+because a worker started by launchd or systemd does not inherit the user's PATH.
+
+*Revisit if:* OpenClaw documents the WebSocket protocol, or streaming progress
+becomes a requirement for §17 Slack updates.

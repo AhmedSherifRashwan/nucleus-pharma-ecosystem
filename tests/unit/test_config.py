@@ -24,9 +24,12 @@ def test_defaults_match_prd_budgets(settings):
     assert settings.default_max_runtime_seconds == 1200
 
 
-def test_gateway_responses_url_is_derived():
-    s = _settings(openclaw_gateway_url="http://127.0.0.1:18789/")
-    assert s.gateway_responses_url == "http://127.0.0.1:18789/v1/responses"
+def test_gateway_url_is_informational_only():
+    """The adapter reaches the gateway through the CLI, which resolves the
+    endpoint itself. PRD s28.3's /v1/responses route does not exist (D-001)."""
+    s = _settings(openclaw_gateway_url="http://127.0.0.1:18789")
+    assert s.openclaw_gateway_url == "http://127.0.0.1:18789"
+    assert not hasattr(s, "gateway_responses_url")
 
 
 def test_subscription_is_the_default_auth_mode():

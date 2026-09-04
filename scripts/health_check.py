@@ -78,16 +78,20 @@ async def main() -> int:
         failures.append(f"schemas: {exc}")
         print(f"{FAIL} schemas: {exc}")
 
-    # 4. Gateway configuration (no live call in Phase 0)
+    # 4. Gateway. A real reachability probe; costs no tokens.
     client = get_gateway_client(settings)
     health = await client.health_check()
-    print(f"{OK} gateway target: {health.gateway_url}  (auth: {health.auth_mode})")
+    if health.reachable:
+        print(
+            f"{OK} gateway: reachable, {health.plugins_loaded} plugins (auth: {health.auth_mode})"
+        )
+    else:
+        failures.append(f"gateway unreachable: {health.detail}")
+        print(f"{FAIL} gateway: {health.detail[:80]}")
     print(
-        f"{OK} routes configured: executive={settings.openclaw_executive_agent}, "
+        f"{OK} routes: executive={settings.openclaw_executive_agent}, "
         f"specialist={settings.openclaw_specialist_agent}"
     )
-    if not health.reachable:
-        warnings.append(f"gateway not reachable: {health.detail}")
     if not settings.openclaw_gateway_token:
         warnings.append("OPENCLAW_GATEWAY_TOKEN is unset (required in production)")
     await client.aclose()

@@ -17,6 +17,7 @@ reading like an execution log.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -48,6 +49,10 @@ from app.schemas.report import (
 )
 
 log = get_logger(__name__)
+
+# Enough to cut the wall clock without stampeding the gateway or the provider's
+# rate limit. Observed: a section takes 1-4 minutes against report-length material.
+MAX_PARALLEL_SECTIONS = 4
 
 COMPOSER_SYSTEM = (
     "You are the senior technical writer for a pharmaceutical development team, "
@@ -431,11 +436,20 @@ async def compose_report(
     total = total + usage
     log.info("report_outline", sections=len(outline.sections), title=outline.document_title)
 
+    # Sections are independent: each is composed against its own sources. Running
+    # them in parallel turns a serial 30 minutes into a few, and each gets its own
+    # gateway session so one section's material cannot leak into another's (s10.3).
+    limit = asyncio.Semaphore(MAX_PARALLEL_SECTIONS)
+
+    async def compose_one(index: int, planned):
+        async with limit:
+            return await compose_section(context, planned, client, f"{session_key}-s{index}", index)
+
+    composed = await asyncio.gather(
+        *(compose_one(i, planned) for i, planned in enumerate(outline.sections))
+    )
     sections: list[ReportSection] = []
-    for index, planned in enumerate(outline.sections):
-        section, usage, warning = await compose_section(
-            context, planned, client, session_key, index
-        )
+    for section, usage, warning in composed:
         total = total + usage
         if warning:
             warnings.append(warning)

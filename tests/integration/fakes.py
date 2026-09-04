@@ -64,6 +64,7 @@ class FakeGateway:
         results_by_marker: dict[str, SpecialistResult] | None = None,
         fail_on: set[str] | None = None,
         default_result: SpecialistResult | None = None,
+        fail_schemas: set[str] | None = None,
     ):
         self.plan = plan
         self.challenge = challenge if challenge is not None else ChallengeResult()
@@ -73,6 +74,7 @@ class FakeGateway:
         self.default_result = default_result
         self.specialist_calls: list[str] = []
         self.schemas: list[str] = []
+        self.fail_schemas = fail_schemas or set()
         self.section_calls = 0
         self.references: list[dict[str, Any]] = []
 
@@ -88,6 +90,8 @@ class FakeGateway:
         timeout_seconds=None,
     ):
         self.schemas.append(schema.__name__)
+        if schema.__name__ in self.fail_schemas:
+            raise RuntimeError(f"simulated failure for {schema.__name__}")
         usage = Usage(duration_ms=30, steps=1)
         info = route_for(route)
         if schema is Plan:

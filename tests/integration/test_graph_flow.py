@@ -404,6 +404,30 @@ async def test_a_completed_run_produces_a_report_artifact(monkeypatch):
     assert "report.generated" in events
 
 
+async def test_a_failed_composition_still_delivers_the_brief(monkeypatch):
+    """s2 fail-closed: a run that did real work never ends empty-handed."""
+    run_id, run_ref = await make_run()
+    gw = FakeGateway(
+        four_task_plan(),
+        results_by_marker=DEFAULT_RESULTS,
+        executive_brief=brief(decisions_required_from_user=[]),
+        fail_schemas={"ReportOutline"},
+    )
+    wire(monkeypatch, gw)
+
+    app = compile_graph(InMemorySaver())
+    final = await app.ainvoke(initial(run_id, run_ref), config=config(run_id))
+
+    paths = [Path(p) for p in (final.get("report_paths") or [])]
+    assert len(paths) == 1
+    assert paths[0].is_file()
+    assert "Executive_Decision_Brief" in paths[0].name
+    warnings = final.get("report_warnings") or []
+    assert any("could not be composed" in w for w in warnings)
+    # The run is not reported as clean when its deliverable was degraded.
+    assert final["status"] == "review_required"
+
+
 # -- challenge and follow-ups (s9.2) -----------------------------------------
 
 

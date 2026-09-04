@@ -35,6 +35,8 @@ from app.orchestration.state import RunState
 from app.orchestration.synthesis import run_quality_gate, synthesize
 from app.schemas.planning import RunBudget
 from app.schemas.specialist import SpecialistResult
+from app.slack import blocks as slack_blocks
+from app.slack.notifier import get_notifier
 from app.storage.db import session_scope
 from app.storage.repositories import (
     AuditRepository,
@@ -65,6 +67,28 @@ def _budget(state: RunState) -> RunBudget:
 
 def _run_uuid(state: RunState) -> uuid.UUID:
     return uuid.UUID(state["run_id"])
+
+
+def _agent_names() -> dict[str, str]:
+    return {p.id: p.name for p in get_registry().all_profiles()}
+
+
+async def _notify(state: RunState, blocks: list[dict[str, Any]], fallback: str) -> str | None:
+    """Post to the originating Slack thread, if the run came from Slack.
+
+    Delivery failure is logged and never propagates: a Slack outage must not fail
+    an otherwise-complete pharmaceutical run, and the result stays in PostgreSQL
+    either way.
+    """
+    channel = state.get("slack_channel")
+    if not channel:
+        return None
+    return await get_notifier().post(
+        channel=channel,
+        blocks=blocks,
+        text=fallback,
+        thread_ts=state.get("slack_thread_ts"),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -171,6 +195,11 @@ async def validate_plan_node(state: RunState) -> dict[str, Any]:
                 run_id=run_id,
                 metadata={"errors": errors},
             )
+        await _notify(
+            state,
+            slack_blocks.failure(state.get("run_ref") or "Run", message),
+            "Plan failed validation.",
+        )
         log.warning("plan_rejected", errors=errors)
         return {"current_stage": "plan_rejected", "status": "failed", "error_state": message}
 
@@ -221,6 +250,12 @@ async def plan_approval(state: RunState) -> dict[str, Any]:
             run_id=run_id,
             metadata={"approval_id": approval_id, "gate": "plan"},
         )
+
+    await _notify(
+        state,
+        slack_blocks.plan_preview(state.get("run_ref") or "Run", plan, _agent_names(), approval_id),
+        f"Plan ready for approval: {plan.objective}",
+    )
 
     decision = interrupt(
         {
@@ -628,6 +663,12 @@ async def human_decision(state: RunState) -> dict[str, Any]:
             },
         )
 
+    await _notify(
+        state,
+        slack_blocks.decision_request(state.get("run_ref") or "Run", brief, approval_id),
+        f"{decision_class.upper()} decision required: {brief.recommendation[:200]}",
+    )
+
     decision = interrupt(
         {
             "type": "final_decision",
@@ -730,6 +771,28 @@ async def persist_final(state: RunState) -> dict[str, Any]:
                 "quality_gate_reasons": gate.reasons if gate else [],
             },
         )
+    if brief is not None:
+        await _notify(
+            state,
+            slack_blocks.executive_brief(
+                state.get("run_ref") or "Run",
+                brief,
+                _agent_names(),
+                evidence_count=len(state.get("evidence_refs") or []),
+                report_paths=state.get("report_paths") or [],
+            ),
+            f"{state.get('run_ref') or 'Run'}: {brief.executive_conclusion[:200]}",
+        )
+    else:
+        await _notify(
+            state,
+            slack_blocks.failure(
+                state.get("run_ref") or "Run",
+                state.get("error_state") or "The run did not produce a result.",
+            ),
+            "Run failed.",
+        )
+
     log.info("run_finished", status=status, specialists=len(results), failed=len(failed))
     return {"current_stage": "finished", "status": status}
 

@@ -205,3 +205,24 @@ so evidence and artifacts attach to the right records. The specialist runner alr
 threads `run_id:task_id` as the gateway idempotency key, so the same identity is
 available to pass through — likely as an environment variable set on the skill
 script, since the specialist itself must not be able to choose which run it writes to.
+
+
+### D-014 · Slack delivery posts directly, rather than through an agent turn
+OpenClaw's only outbound path is an `agent` RPC with `deliver: true`, which means a
+language model generates the delivered text.
+
+*Problem:* for a regulated deliverable that is the wrong shape. §18 requires
+deterministic assembly precisely so a model cannot reformat or paraphrase the
+output, and asking one to reproduce a long Executive Decision Brief verbatim is
+both unreliable and an extra model call per post.
+
+*Decision:* `app/slack/notifier.py` posts the exact rendered Block Kit through the
+Slack Web API, using the bot token OpenClaw already holds (env var first, then
+OpenClaw's config, including SecretRef indirection). OpenClaw remains the inbound
+gateway per §7.1; only outbound fidelity is ours.
+
+*Consequences:* delivery is exact, cheap and fast. Delivery failure is logged and
+returns `None` rather than raising — a Slack outage must not fail an otherwise
+complete pharmaceutical run, and the result is in PostgreSQL either way.
+
+*Revisit if:* OpenClaw exposes a non-agent send method on the gateway.

@@ -13,9 +13,9 @@
 | 6 | LangGraph Core: all §8 states, PostgresSaver, human gates | **Complete** |
 | 7 | Parallel Specialists | **Complete** — covered by the Phase 6 dispatcher |
 | 8 | Challenge and Conflict | **Complete** — conflict detection, challenge, bounded follow-ups |
-| 9 | OpenClaw Pharma Skill | Not started |
-| 10 | Worker Service | Not started |
-| 11 | Slack Delivery | Not started |
+| 9 | OpenClaw Pharma Skill: SKILL.md + enqueue_run.py | **Complete** |
+| 10 | Worker Service: claim, retry, cancellation, restart recovery | **Complete** |
+| 11 | Slack Delivery: plan preview, brief, decision gates | **Complete** |
 | 12 | Reports (DOCX/PDF) | Not started |
 | 13 | Human Decisions | **Mostly complete** — both gates in the graph; Slack UX pending |
 | 14 | Expand to 16 Profiles | Not started |
@@ -217,6 +217,36 @@ SYNTHESIS → QUALITY_GATE → [HUMAN_DECISION] → PERSIST_FINAL_STATE`
 - A material contradiction omitted from the brief is reinstated by the platform.
 - The follow-up round is bounded: exactly one challenge, never a loop.
 - **A run resumes on a fresh graph instance sharing the checkpoint store** (FR-016).
+
+## Phases 9, 10 and 11 — delivered
+
+**Phase 9 — intake.** `openclaw/workspace/skills/pharma-ecosystem/SKILL.md` plus
+`scripts/enqueue_run.py`. The skill's only job is to launch and acknowledge; it is
+told explicitly not to attempt the analysis, not to rewrite the request, and never
+to invent a run reference. The Slack event id is the deduplication key.
+
+**Phase 10 — worker.** `app/worker.py`: a supervised loop that claims jobs with
+`FOR UPDATE SKIP LOCKED`, runs the graph, retries with backoff, reclaims jobs from
+a crashed worker, and handles resume jobs for approval decisions. Preflight
+validates the registry and probes the gateway before accepting work.
+
+**Phase 11 — delivery.** `app/slack/blocks.py` and `app/slack/notifier.py`. Plan
+preview with approval buttons, the Executive Decision Brief, the AMBER/RED decision
+gate, and failure notices — all posted into the originating thread.
+
+**Verified by test (32 cases):**
+- A Slack retry of the same event does not create a second run; one message, one run.
+- Follow-ups in one thread share a project but create separate auditable runs.
+- The worker will not re-execute a run already in a terminal state.
+- Exhausted retries fail the run explicitly, so it never sits in "running" forever.
+- A resume job takes the resume path rather than restarting the graph.
+- Every brief carries the advisory disclaimer; `review_required` is prominent;
+  unresolved disagreement, critical assumptions and information gaps all survive
+  into the delivered message.
+- Button values carry a compact approval id, never the plan.
+- A Slack outage returns `None` rather than failing the run.
+
+**Verified live:** a Block Kit message posted successfully to `#main-comms`.
 
 ## Next
 

@@ -154,7 +154,7 @@ async def _call[T: BaseModel](
 
 
 async def compose_outline(
-    context: FinalReportContext, client: OpenClawClient, session_key: str
+    context: FinalReportContext, client: OpenClawClient, session_key: str, key_prefix: str
 ) -> tuple[ReportOutline, Usage]:
     inventory = (
         "\n".join(
@@ -216,6 +216,7 @@ async def compose_section(
     client: OpenClawClient,
     session_key: str,
     index: int,
+    key_prefix: str,
 ) -> tuple[ReportSection | None, Usage, str | None]:
     sources = _artifacts_for(context, outline_section.source_artifact_refs, fallback_all=index == 0)
     material = (
@@ -257,7 +258,7 @@ async def compose_section(
             client,
             SectionDraft,
             user,
-            key=f"{context.run_ref}:report-section-{index}",
+            key=f"{key_prefix}-section-{index}",
             session_key=session_key,
         )
     except GatewayError as exc:
@@ -276,7 +277,7 @@ async def compose_section(
 
 
 async def compose_closing(
-    context: FinalReportContext, client: OpenClawClient, session_key: str
+    context: FinalReportContext, client: OpenClawClient, session_key: str, key_prefix: str
 ) -> tuple[ClosingMatter, Usage]:
     challenge = context.challenge
     review_material = {
@@ -346,7 +347,7 @@ async def compose_closing(
 
 
 async def compose_references(
-    context: FinalReportContext, client: OpenClawClient, session_key: str
+    context: FinalReportContext, client: OpenClawClient, session_key: str, key_prefix: str
 ) -> tuple[list[Reference], Usage]:
     """Turn the evidence register into precise citations (s32.3).
 
@@ -394,7 +395,7 @@ async def compose_references(
 
 
 async def compose_brief(
-    context: FinalReportContext, client: OpenClawClient, session_key: str
+    context: FinalReportContext, client: OpenClawClient, session_key: str, key_prefix: str
 ) -> tuple[ExecutiveBriefSection, Usage]:
     brief = context.brief
     if brief is None:
@@ -412,7 +413,7 @@ async def compose_brief(
         "director can act on. Do not describe how the analysis was performed."
     )
     result, usage = await _call(
-        client, BriefSection, user, key=f"{context.run_ref}:report-brief", session_key=session_key
+        client, BriefSection, user, key=f"{key_prefix}-brief", session_key=session_key
     )
     assert isinstance(result, BriefSection)
     return result.brief, usage
@@ -428,11 +429,14 @@ async def compose_report(
 ) -> CompositionOutcome:
     """Compose the whole report. Raises only if the outline itself fails."""
     client = client or get_gateway_client()
-    session_key = f"agent:pharma-executive:{context.run_ref}-report"
+    # Version-scoped: regenerating a report is a new turn, not a retry of the
+    # previous one. Reusing a key makes the gateway refuse with `in_flight`.
+    key_prefix = f"{context.run_ref}:v{report_version}:report"
+    session_key = f"agent:pharma-executive:{context.run_ref}-report-v{report_version}"
     warnings: list[str] = []
     total = Usage()
 
-    outline, usage = await compose_outline(context, client, session_key)
+    outline, usage = await compose_outline(context, client, session_key, key_prefix)
     total = total + usage
     log.info("report_outline", sections=len(outline.sections), title=outline.document_title)
 
@@ -443,7 +447,9 @@ async def compose_report(
 
     async def compose_one(index: int, planned):
         async with limit:
-            return await compose_section(context, planned, client, f"{session_key}-s{index}", index)
+            return await compose_section(
+                context, planned, client, f"{session_key}-s{index}", index, key_prefix
+            )
 
     composed = await asyncio.gather(
         *(compose_one(i, planned) for i, planned in enumerate(outline.sections))
@@ -460,21 +466,21 @@ async def compose_report(
     context.__dict__["_composed_headings"] = [s.heading for s in sections]
 
     try:
-        closing, usage = await compose_closing(context, client, session_key)
+        closing, usage = await compose_closing(context, client, session_key, key_prefix)
         total = total + usage
     except (GatewayError, ValueError) as exc:
         warnings.append(f"The closing matter could not be composed: {exc}")
         closing = ClosingMatter()
 
     try:
-        brief_section, usage = await compose_brief(context, client, session_key)
+        brief_section, usage = await compose_brief(context, client, session_key, key_prefix)
         total = total + usage
     except (GatewayError, ValueError) as exc:
         warnings.append(f"The executive brief could not be composed: {exc}")
         brief_section = _fallback_brief(context)
 
     try:
-        references, usage = await compose_references(context, client, session_key)
+        references, usage = await compose_references(context, client, session_key, key_prefix)
         total = total + usage
     except (GatewayError, ValueError) as exc:
         warnings.append(f"The reference list could not be composed: {exc}")

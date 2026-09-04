@@ -197,6 +197,11 @@ duplicated outside Python.
   unaffected.
 - No MCP server to run or supervise, which suits the single-host topology in §36.
 
-*Open for Phase 5:* how a skill invocation identifies the run and task it belongs
-to, so evidence and artifacts attach to the right records. Likely an environment
-variable or argument set when the task envelope is built.
+*Progress:* the 16 **specialist** skills are generated and committed. The **tool**
+skill wrappers are not yet built.
+
+*Still open:* how a tool-skill invocation identifies the run and task it belongs to,
+so evidence and artifacts attach to the right records. The specialist runner already
+threads `run_id:task_id` as the gateway idempotency key, so the same identity is
+available to pass through — likely as an environment variable set on the skill
+script, since the specialist itself must not be able to choose which run it writes to.

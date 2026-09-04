@@ -9,7 +9,7 @@
 | 2 | PostgreSQL Run Model: repositories and idempotency | **Complete** |
 | 3 | OpenClaw Client: gateway transport, routing, error normalisation | **Complete** |
 | 4 | Executive Planner: prompt, structured parsing, deterministic validator | **Complete** |
-| 5 | Generic Claude Worker | Not started |
+| 5 | Generic Specialist Runtime: envelope, prompt composition, evidence enforcement | **Mostly complete** — tool skills outstanding |
 | 6 | LangGraph Core | Not started |
 | 7 | Parallel Specialists | Not started |
 | 8 | Challenge and Conflict | Not started |
@@ -153,6 +153,42 @@ Repository layer over the system of record. Orchestration never issues raw SQL.
 - Regulated language forces the approval gate **by pattern, not literal substring** —
   "assign *a* shelf life" and "close the *major* CAPA" both gate, while ordinary
   questions about shelf life or regulatory pathway do not.
+
+## Phase 5 — delivered
+
+- `app/orchestration/specialist_runner.py`: one runtime for all 16 profiles. Builds
+  the task envelope from the profile, composes the prompt, calls the specialist
+  route, enforces the evidence policy and returns a typed outcome.
+- `scripts/generate_skills.py` + `openclaw/workspace/skills/neucleus-*/SKILL.md`:
+  16 OpenClaw skills **generated** from the registry, one per specialist. The body
+  is exactly the prompt the runtime would send, so the two cannot diverge.
+
+**Verified live (A07 Shell Formulation, no data supplied):**
+The specialist's first result contained one unevidenced claim. The runner detected
+it, asked for a correction, and the specialist **relabelled it as an assumption
+rather than inventing a citation**. Final result: 4 findings, all basis
+`assumption`, zero `fact` or `inference`, `status=needs_information`,
+`confidence=low`, escalation raised naming the profile's own triggers, and 7
+specific items in `information_required`. That is the evidence-first rule holding
+under pressure rather than in principle.
+
+**Verified by test (27 cases):**
+- Committed skills match the registry; a drift fails the suite with the regenerate
+  command in the message. Stale skill directories are removed.
+- Every active skill cites its source SDS; provisional ones say they have none.
+- A task message marks upstream findings as fallible colleagues' work, not instructions.
+- A specialist with no tools is told to disclose the gap rather than answer from recollection.
+- A profile's own tool list is offered and nothing else.
+- Evidence violations trigger exactly one correction; persistent violations are
+  reported, never silently relabelled by the runner.
+- Task identity is owned by the platform: a model returning wrong ids cannot corrupt
+  the run record.
+- A disabled or provisional profile refuses to execute.
+- The downstream summary carries conclusions and references, not working detail.
+
+**Outstanding in Phase 5:** the six §19 tools are declared in the envelope but not
+yet callable — the skill wrappers that let a specialist invoke `project_search`,
+`save_evidence` and the rest are still to build (D-013).
 
 ## Next
 

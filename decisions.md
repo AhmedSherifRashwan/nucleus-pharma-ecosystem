@@ -101,18 +101,6 @@ to `app/prompts/workers/common_v1.md`; the Slack app display name follows in Pha
 given. Confirm before the Slack app is created — a bot handle is user-visible and
 awkward to change later.
 
-### D-013 · Specialist tool binding is unresolved · **affects Phase 5**
-PRD §19 says "Tool implementations belong in Python and are explicitly bound to
-profiles". But in v3 a specialist executes *inside* an OpenClaw agent, which has
-its own tool policy. There is no mechanism in the verified `agent` RPC contract to
-inject Python-implemented tools into a turn.
-
-*Options:* expose the §19 tools to OpenClaw over MCP; implement them as OpenClaw
-skills; or have the orchestrator perform retrieval in Python and pass results into
-the task envelope as context (no tools inside the turn at all).
-
-Flagged rather than chosen. Phase 5 cannot be completed honestly without a decision.
-
 ## Resolved
 
 ### D-002 · Homebrew PostgreSQL instead of Docker
@@ -187,3 +175,28 @@ because a worker started by launchd or systemd does not inherit the user's PATH.
 
 *Revisit if:* OpenClaw documents the WebSocket protocol, or streaming progress
 becomes a requirement for §17 Slack updates.
+
+
+### D-013 · Specialist tools reach OpenClaw as skills that call Python
+*Decision (user, 4 Sep 2026):* implement the §19 tools as **OpenClaw skills**
+rather than an MCP server.
+
+*Refinement:* a skill is a `SKILL.md` plus a script. The script will be a thin
+wrapper that shells into this codebase (`uv run python -m app.tools.<name>`), so
+the implementation stays in Python and §19's "tool implementations belong in
+Python" holds. What OpenClaw sees is the skill; what executes is our code. This
+avoids the objection to the pure-skill route, where tool logic would have been
+duplicated outside Python.
+
+*Consequences:*
+- Per-profile binding (§19 "explicitly bound to profiles") must be enforced by the
+  Python wrapper checking the calling agent against the profile allowlist. OpenClaw
+  scopes skills per agent, but the authoritative check stays in our code so the
+  registry remains the single source of truth.
+- Evidence written by a tool lands in PostgreSQL directly, so §15 provenance is
+  unaffected.
+- No MCP server to run or supervise, which suits the single-host topology in §36.
+
+*Open for Phase 5:* how a skill invocation identifies the run and task it belongs
+to, so evidence and artifacts attach to the right records. Likely an environment
+variable or argument set when the task envelope is built.

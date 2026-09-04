@@ -6,9 +6,9 @@
 |-------|-----------|--------|
 | 0 | Foundation: repo, settings, logging, models/migrations, schemas, gateway skeleton, diagnostics | **Complete** |
 | 1 | Agent Registry: A01–A16 YAML, validation, prompt versions, seed | **Complete** |
-| 2 | PostgreSQL Run Model: repositories and idempotency | Partial — tables and constraints exist; repositories pending |
+| 2 | PostgreSQL Run Model: repositories and idempotency | **Complete** |
 | 3 | OpenClaw Client: gateway transport, routing, error normalisation | **Complete** |
-| 4 | OpenAI Planner | Not started |
+| 4 | Executive Planner: prompt, structured parsing, deterministic validator | **Complete** |
 | 5 | Generic Claude Worker | Not started |
 | 6 | LangGraph Core | Not started |
 | 7 | Parallel Specialists | Not started |
@@ -108,6 +108,52 @@
 - CLI discovery honours `OPENCLAW_CLI_PATH`, falls back to the default install
   location, and names the setting to fix when it cannot find the binary.
 
+## Phase 2 — delivered
+
+Repository layer over the system of record. Orchestration never issues raw SQL.
+
+- `projects` (Slack thread → one project/session, §17.2), `runs` (`RUN-YYYY-NNNN`
+  refs, idempotency lookup), `jobs` (claim with `FOR UPDATE SKIP LOCKED`, backoff,
+  stale reclaim), `evidence` + `artifacts` (reliability levels, report versioning),
+  `governance` (assumptions, conflicts, risks, approvals, decisions), `audit`.
+
+**Verified by test (21 cases):**
+- A Slack thread maps to exactly one project; a follow-up reuses it.
+- The same idempotency key returns the same run, and the same job.
+- Two concurrent workers never claim one job; a crashed worker's job is reclaimed.
+- Failure backs off, then fails explicitly once attempts are exhausted.
+- A decided approval gate cannot be re-decided, and an invalid decision class is refused.
+- Open **material** conflicts are surfaced separately from cosmetic ones.
+- Superseded decisions drop out of project memory (FR-020).
+- Specialist results record route, model and agent version (§20).
+- Reports version rather than overwrite (§18.3).
+
+## Phase 4 — delivered
+
+- `app/prompts/executive/plan_v1.md`: versioned planner prompt carrying the agent
+  catalog, §12.1 routing matrix, project context and prior approved decisions.
+- `app/orchestration/planner.py`: PLAN through the executive route, returning a
+  validated outcome rather than a raw plan.
+- `app/orchestration/plan_validator.py`: the deterministic gate — agent existence
+  and eligibility, acyclicity, budgets, forbidden actions, step clamping, and
+  execution groups recomputed from dependencies rather than trusted.
+- `tests/fixtures/routing_cases.json`: 15 routing cases including the four §34.4
+  worked examples.
+
+**Verified live against the gateway:**
+- *"Dissolution slowing at 6-month accelerated, PEG 400 / polysorbate 80 fill"* →
+  Analytical, Fill and Shell dispatched in parallel, then Stability integrating all
+  three. Correct shape, unprompted.
+- *"Approve the batch release for lot 24-001"* → QC then independent QA review,
+  approval gate on, no commercial agents selected.
+
+**Verified by test:**
+- A planner-supplied execution grouping is discarded and recomputed, so a dependent
+  task can never run alongside its dependency.
+- Regulated language forces the approval gate **by pattern, not literal substring** —
+  "assign *a* shelf life" and "close the *major* CAPA" both gate, while ordinary
+  questions about shelf life or regulatory pathway do not.
+
 ## Next
 
 OpenClaw is fully operational: both model routes verified, Slack connected to
@@ -115,9 +161,8 @@ OpenClaw is fully operational: both model routes verified, Slack connected to
 
 Phase 2 (repositories over the run model) and Phase 4 (planner) are both unblocked.
 
-**Phase 5 is blocked on D-013** — how §19's Python-implemented tools reach a
-specialist running inside an OpenClaw agent. That needs a decision before the
-generic specialist runtime can be built honestly.
+**Phase 5 is unblocked**: D-013 is decided — tools become OpenClaw skills whose
+scripts call into this codebase, so implementations stay in Python.
 
 Outstanding OpenClaw item: `commands.ownerAllowFrom` is unset, which blocks §16
 approval authorisation. It needs the operator's Slack member ID.

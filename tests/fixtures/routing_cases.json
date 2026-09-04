@@ -1,0 +1,140 @@
+{
+  "description": "Planner routing evaluation set (PRD v3.0 s34.3, s34.4). Each case states which specialists a correct plan must include, may include, and should not include. Expand toward 50-100 cases with client SMEs before pilot.",
+  "cases": [
+    {
+      "id": "R-001",
+      "request": "Analyse commercial viability of entering Europe with a generic softgel version of Product A.",
+      "must_include": ["A01", "A02"],
+      "may_include": ["A05", "A11", "A14"],
+      "should_not_include": ["A12", "A13"],
+      "requires_plan_approval": false,
+      "notes": "PRD s34.4 worked example. Portfolio and Regulatory lead."
+    },
+    {
+      "id": "R-002",
+      "request": "Investigate manufacturability of Candidate X as a softgel.",
+      "must_include": ["A11"],
+      "may_include": ["A05", "A07", "A08", "A04", "A12", "A14"],
+      "should_not_include": ["A01", "A16"],
+      "requires_plan_approval": false,
+      "notes": "PRD s34.4 worked example. Process Development leads the first wave."
+    },
+    {
+      "id": "R-003",
+      "request": "Create a QTPP from the supplied reference product data.",
+      "must_include": ["A03"],
+      "may_include": ["A02", "A04"],
+      "should_not_include": ["A11", "A13", "A16"],
+      "requires_plan_approval": false,
+      "notes": "PRD s34.4 worked example. QTPP primary, Regulatory and QbD support."
+    },
+    {
+      "id": "R-004",
+      "request": "Review this OOS trend package from the stability programme.",
+      "must_include": ["A13"],
+      "may_include": ["A09", "A10", "A14"],
+      "should_not_include": ["A01", "A06"],
+      "requires_plan_approval": false,
+      "notes": "PRD s34.4 worked example. QC primary."
+    },
+    {
+      "id": "R-005",
+      "request": "Our softgel dissolution is slowing at the 6-month accelerated timepoint. The fill is PEG 400 with polysorbate 80. What is happening?",
+      "must_include": ["A10", "A07"],
+      "may_include": ["A08", "A09", "A06", "A13"],
+      "should_not_include": ["A01", "A16"],
+      "requires_plan_approval": false,
+      "notes": "Gelatin cross-linking signal. Stability and Shell must both appear."
+    },
+    {
+      "id": "R-006",
+      "request": "The API is BCS class II with poor aqueous solubility. Recommend a fill formulation strategy and excipients.",
+      "must_include": ["A08", "A06"],
+      "may_include": ["A05", "A07", "A03", "A09"],
+      "should_not_include": ["A01", "A13", "A16"],
+      "requires_plan_approval": false,
+      "notes": "Fill leads; Excipient must rank and justify candidates."
+    },
+    {
+      "id": "R-007",
+      "request": "What is the regulatory pathway and bioequivalence expectation for this molecule in the US and EU?",
+      "must_include": ["A02"],
+      "may_include": ["A01", "A03", "A09"],
+      "should_not_include": ["A07", "A11", "A13"],
+      "requires_plan_approval": false,
+      "notes": "Narrow regulatory question. Formulation specialists add nothing."
+    },
+    {
+      "id": "R-008",
+      "request": "Build the CQA, CMA and CPP registers and a control strategy from our approved QTPP.",
+      "must_include": ["A04"],
+      "may_include": ["A03", "A09", "A11", "A12"],
+      "should_not_include": ["A01", "A16"],
+      "requires_plan_approval": false,
+      "notes": "QbD owns the traceability chain."
+    },
+    {
+      "id": "R-009",
+      "request": "We are changing the manufacturing site. What are the regulatory, validation and quality risks?",
+      "must_include": ["A02", "A12", "A14"],
+      "may_include": ["A11", "A13", "A10"],
+      "should_not_include": ["A06", "A08"],
+      "requires_plan_approval": false,
+      "notes": "Validation and QA are the governing perspectives on a site change."
+    },
+    {
+      "id": "R-010",
+      "request": "Design the analytical method package and the ICH stability programme.",
+      "must_include": ["A09", "A10"],
+      "may_include": ["A03", "A04", "A13"],
+      "should_not_include": ["A01", "A11"],
+      "requires_plan_approval": false,
+      "notes": "Analytical and Stability are interdependent."
+    },
+    {
+      "id": "R-011",
+      "request": "Please approve the batch release for lot 24-001 based on the QC results.",
+      "must_include": ["A13"],
+      "may_include": ["A14", "A12"],
+      "should_not_include": ["A01", "A06", "A08"],
+      "requires_plan_approval": true,
+      "notes": "Regulated disposition language MUST force the approval gate. The system may assess readiness but never releases."
+    },
+    {
+      "id": "R-012",
+      "request": "Assign a shelf life for this product based on the 12-month stability data.",
+      "must_include": ["A10"],
+      "may_include": ["A09", "A13", "A14", "A02"],
+      "should_not_include": ["A01", "A06"],
+      "requires_plan_approval": true,
+      "notes": "Shelf-life assignment is a regulated decision and must be gated."
+    },
+    {
+      "id": "R-013",
+      "request": "Which excipients are acceptable for a softgel fill under the FDA Inactive Ingredient Database?",
+      "must_include": ["A06"],
+      "may_include": ["A02", "A08"],
+      "should_not_include": ["A11", "A12", "A13", "A14"],
+      "requires_plan_approval": false,
+      "notes": "Narrow question. Selecting many agents here is over-planning."
+    },
+    {
+      "id": "R-014",
+      "request": "Optimise the encapsulation process for scale-up to commercial batch size.",
+      "must_include": ["A11"],
+      "may_include": ["A07", "A08", "A12", "A04"],
+      "should_not_include": ["A01", "A02", "A16"],
+      "requires_plan_approval": false,
+      "notes": "Process Development leads; Shell and Fill inform ribbon and fill behaviour."
+    },
+    {
+      "id": "R-015",
+      "request": "Design the shell formulation for a hygroscopic lipid fill in a hot humid market.",
+      "must_include": ["A07"],
+      "may_include": ["A08", "A06", "A10", "A11"],
+      "should_not_include": ["A01", "A13", "A16"],
+      "requires_plan_approval": false,
+      "notes": "Shell primary; moisture and stability follow-on expected."
+    }
+  ]
+}

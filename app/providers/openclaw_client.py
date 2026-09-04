@@ -115,6 +115,11 @@ _ERROR_SIGNATURES: tuple[tuple[str, type[GatewayError]], ...] = (
     ("unavailable", GatewayTransientError),
     ("503", GatewayTransientError),
     ("502", GatewayTransientError),
+    # The gateway holds one turn per idempotency key. A killed client leaves its
+    # turn open, and the next call for that key is refused until it settles -
+    # transient, not a failure of the request.
+    ("in_flight", GatewayTransientError),
+    ("already running", GatewayTransientError),
 )
 
 

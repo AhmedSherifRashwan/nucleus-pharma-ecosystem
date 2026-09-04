@@ -392,3 +392,10 @@ def test_discovery_failure_names_what_to_set(monkeypatch):
     monkeypatch.setattr(mod, "FALLBACK_CLI_PATHS", ())
     with pytest.raises(GatewayNotConfigured, match="OPENCLAW_CLI_PATH"):
         _client(Runner()).resolve_cli()
+
+
+def test_an_in_flight_turn_is_transient_not_a_failure():
+    """A killed client leaves its turn open; the next call must be retryable."""
+    from app.providers.openclaw_client import GatewayTransientError, classify_error
+
+    assert isinstance(classify_error("agent turn status=in_flight: "), GatewayTransientError)

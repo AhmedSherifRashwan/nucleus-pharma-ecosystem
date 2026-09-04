@@ -1,2 +1,2 @@
-2026-09-04T18:13:42.424458Z [info     ] report_context_built           chars=129465 current_artifacts=7 evidence=31 run_ref=RUN-2026-0006 superseded_artifacts=1
-{"error": "GatewayError: agent turn status=in_flight: "}
+2026-09-04T18:17:28.837134Z [info     ] report_context_built           chars=129465 current_artifacts=7 evidence=31 run_ref=RUN-2026-0006 superseded_artifacts=1
+2026-09-04T18:17:48.797147Z [info     ] report_outline                 sections=8 title='Quality Target Product Profile and Critical Quality Framework for Midostaurin 25 mg Soft Gelatin Capsules'

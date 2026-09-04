@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
@@ -429,10 +430,13 @@ async def compose_report(
 ) -> CompositionOutcome:
     """Compose the whole report. Raises only if the outline itself fails."""
     client = client or get_gateway_client()
-    # Version-scoped: regenerating a report is a new turn, not a retry of the
-    # previous one. Reusing a key makes the gateway refuse with `in_flight`.
-    key_prefix = f"{context.run_ref}:v{report_version}:report"
-    session_key = f"agent:pharma-executive:{context.run_ref}-report-v{report_version}"
+    # A composition is not resumable: it either completes or is redone from the
+    # outline. So each invocation gets its own keys. Reusing them means the gateway
+    # matches an earlier turn - including one abandoned by a client that died - and
+    # refuses the new call with `in_flight` until that turn settles.
+    nonce = uuid.uuid4().hex[:8]
+    key_prefix = f"{context.run_ref}:v{report_version}:report:{nonce}"
+    session_key = f"agent:pharma-executive:{context.run_ref}-report-v{report_version}-{nonce}"
     warnings: list[str] = []
     total = Usage()
 

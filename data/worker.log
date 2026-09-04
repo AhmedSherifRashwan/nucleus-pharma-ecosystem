@@ -7,3 +7,23 @@ HTTP Request: POST https://slack.com/api/chat.postMessage "HTTP/1.1 200 OK"
 HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
 HTTP Request: POST https://slack.com/api/chat.postMessage "HTTP/1.1 200 OK"
 2026-09-04T09:22:05.938387Z [info     ] job_complete                   job_id=643b184f-e579-47bd-be2c-83b0288fb078 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 worker=Ahmeds-MacBook-Air.local-36196
+2026-09-04T09:33:41.640213Z [info     ] job_claimed                    attempt=1 job_id=f458069b-3572-4f4f-ae75-fe0058e86309 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 type=resume worker=Ahmeds-MacBook-Air.local-36196
+2026-09-04T09:33:41.644968Z [info     ] resuming_run                   decision=approved run_id=89e28168-6be1-4087-a1dd-698a740f6b82 worker=Ahmeds-MacBook-Air.local-36196
+Deserializing unregistered type app.schemas.planning.Plan from checkpoint. This will be blocked in a future version. Set LANGGRAPH_STRICT_MSGPACK=true to block now, or add to allowed_msgpack_modules to allow explicitly: [('app.schemas.planning', 'Plan')]
+Deserializing unregistered type app.schemas.planning.RunBudget from checkpoint. This will be blocked in a future version. Set LANGGRAPH_STRICT_MSGPACK=true to block now, or add to allowed_msgpack_modules to allow explicitly: [('app.schemas.planning', 'RunBudget')]
+2026-09-04T09:33:41.653237Z [info     ] resume_from_interrupt          run_id=89e28168-6be1-4087-a1dd-698a740f6b82 worker=Ahmeds-MacBook-Air.local-36196
+HTTP Request: POST https://slack.com/api/chat.postMessage "HTTP/1.1 200 OK"
+HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
+2026-09-04T09:33:42.370620Z [info     ] specialist_start               agent_id=A02 agent_version=1.0.0 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 task_id=T1 tools=5 worker=Ahmeds-MacBook-Air.local-36196
+2026-09-04T09:38:45.596495Z [warning  ] specialist_failed              agent_id=A02 error='gateway timeout after 300000ms' run_id=89e28168-6be1-4087-a1dd-698a740f6b82 task_id=T1 worker=Ahmeds-MacBook-Air.local-36196
+HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
+2026-09-04T09:38:46.080239Z [info     ] specialist_start               agent_id=A03 agent_version=1.0.0 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 task_id=T2 tools=4 worker=Ahmeds-MacBook-Air.local-36196
+2026-09-04T09:38:46.095869Z [info     ] specialist_start               agent_id=A04 agent_version=1.0.0 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 task_id=T3 tools=5 worker=Ahmeds-MacBook-Air.local-36196
+2026-09-04T09:41:00.994021Z [warning  ] evidence_policy_violation      agent_id=A04 count=1 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 task_id=T3 worker=Ahmeds-MacBook-Air.local-36196
+2026-09-04T09:41:27.451785Z [info     ] specialist_complete            agent_id=A04 confidence=low corrected=True duration_ms=154962 escalation=True evidence=0 findings=2 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 status=needs_information task_id=T3 unsupported=0 worker=Ahmeds-MacBook-Air.local-36196
+2026-09-04T09:43:49.026425Z [warning  ] specialist_failed              agent_id=A03 error='gateway timeout after 300000ms' run_id=89e28168-6be1-4087-a1dd-698a740f6b82 task_id=T2 worker=Ahmeds-MacBook-Air.local-36196
+HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
+2026-09-04T09:43:49.490472Z [info     ] specialist_start               agent_id=A14 agent_version=1.0.0 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 task_id=T4 tools=5 worker=Ahmeds-MacBook-Air.local-36196
+2026-09-04T09:48:02.278343Z [info     ] specialist_complete            agent_id=A14 confidence=medium corrected=False duration_ms=250029 escalation=False evidence=3 findings=7 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 status=needs_information task_id=T4 unsupported=0 worker=Ahmeds-MacBook-Air.local-36196
+HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
+2026-09-04T09:48:02.637597Z [info     ] specialist_start               agent_id=A03 agent_version=1.0.0 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 task_id=T5 tools=4 worker=Ahmeds-MacBook-Air.local-36196

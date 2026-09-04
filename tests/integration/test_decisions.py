@@ -38,7 +38,7 @@ async def _gate(gate: str = "plan", *, owner: str | None = OWNER) -> tuple[uuid.
             user_request="Assess the shell change.", slack_user_id=owner
         )
         await RunRepository(s).set_stage(run.id, "awaiting_approval", status="awaiting_approval")
-        approval = await GovernanceRepository(s).request_approval(
+        approval, _ = await GovernanceRepository(s).request_approval(
             run_id=run.id, gate=gate, decision_class="amber"
         )
         return run.id, run.run_ref, str(approval.id)
@@ -126,3 +126,32 @@ async def test_a_decision_needs_a_named_person(approvers):
     _, _, approval_id = await _gate()
     with pytest.raises(DecisionRefused, match="no Slack user id"):
         await record(approval_id=approval_id, action="approve_plan", user=None)
+
+
+async def test_a_gate_raised_twice_reuses_the_open_approval():
+    """A resumed node re-runs its body; the user's button must stay valid."""
+    run_id, _, approval_id = await _gate()
+
+    async with session_scope() as s:
+        again, is_new = await GovernanceRepository(s).request_approval(
+            run_id=run_id, gate="plan", decision_class="amber"
+        )
+
+    assert str(again.id) == approval_id
+    assert is_new is False
+
+
+async def test_a_decided_gate_can_be_raised_again(approvers):
+    """A later gate of the same kind is a genuinely new question."""
+    run_id, _, approval_id = await _gate()
+    await record(approval_id=approval_id, action="approve_plan", user=OWNER)
+    async with session_scope() as s:
+        await GovernanceRepository(s).decide_approval(
+            uuid.UUID(approval_id), status="approved", decided_by=OWNER
+        )
+        fresh, is_new = await GovernanceRepository(s).request_approval(
+            run_id=run_id, gate="plan", decision_class="amber"
+        )
+
+    assert str(fresh.id) != approval_id
+    assert is_new is True

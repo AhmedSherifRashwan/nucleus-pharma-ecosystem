@@ -136,6 +136,21 @@ class GovernanceRepository:
 
     # -- approvals (s16) ----------------------------------------------------
 
+    async def pending_for_gate(self, run_id: uuid.UUID, gate: str) -> Approval | None:
+        """The open approval for this gate, if the run already raised one.
+
+        A resumed LangGraph node re-runs its body from the top, so a gate can be
+        raised twice for one pause. The first approval is the one the user is
+        looking at in Slack; raising a second would strand it.
+        """
+        stmt = (
+            select(Approval)
+            .where(Approval.run_id == run_id, Approval.gate == gate, Approval.status == "pending")
+            .order_by(Approval.created_at)
+            .limit(1)
+        )
+        return (await self.session.execute(stmt)).scalar_one_or_none()
+
     async def request_approval(
         self,
         *,
@@ -144,9 +159,13 @@ class GovernanceRepository:
         decision_class: str = "amber",
         requested_payload: dict[str, Any] | None = None,
         expires_at: datetime | None = None,
-    ) -> Approval:
+    ) -> tuple[Approval, bool]:
+        """Raise a gate. Returns the approval and whether it is newly created."""
         if decision_class not in DECISION_CLASSES:
             raise ValueError(f"decision_class must be one of {DECISION_CLASSES}")
+        existing = await self.pending_for_gate(run_id, gate)
+        if existing is not None:
+            return existing, False
         row = Approval(
             run_id=run_id,
             gate=gate,
@@ -157,7 +176,7 @@ class GovernanceRepository:
         )
         self.session.add(row)
         await self.session.flush()
-        return row
+        return row, True
 
     async def decide_approval(
         self,

@@ -289,7 +289,7 @@ async def plan_approval(state: RunState) -> dict[str, Any]:
     assert plan is not None
 
     async with session_scope() as s:
-        approval = await GovernanceRepository(s).request_approval(
+        approval, is_new = await GovernanceRepository(s).request_approval(
             run_id=run_id,
             gate="plan",
             decision_class="amber",
@@ -303,18 +303,24 @@ async def plan_approval(state: RunState) -> dict[str, Any]:
         )
         approval_id = str(approval.id)
         await RunRepository(s).set_stage(run_id, "awaiting_approval", status="awaiting_approval")
-        await AuditRepository(s).record(
-            event_type=EventType.APPROVAL_REQUESTED,
-            actor_type="orchestrator",
-            run_id=run_id,
-            metadata={"approval_id": approval_id, "gate": "plan"},
-        )
+        if is_new:
+            await AuditRepository(s).record(
+                event_type=EventType.APPROVAL_REQUESTED,
+                actor_type="orchestrator",
+                run_id=run_id,
+                metadata={"approval_id": approval_id, "gate": "plan"},
+            )
 
-    await _notify(
-        state,
-        slack_blocks.plan_preview(state.get("run_ref") or "Run", plan, _agent_names(), approval_id),
-        f"Plan ready for approval: {plan.objective}",
-    )
+    # Resuming re-runs this node from the top. The gate is only posted the first
+    # time, so the user is not handed a second copy of a plan they just decided.
+    if is_new:
+        await _notify(
+            state,
+            slack_blocks.plan_preview(
+                state.get("run_ref") or "Run", plan, _agent_names(), approval_id
+            ),
+            f"Plan ready for approval: {plan.objective}",
+        )
 
     decision = interrupt(
         {
@@ -696,7 +702,7 @@ async def human_decision(state: RunState) -> dict[str, Any]:
     decision_class = brief.highest_decision_class
 
     async with session_scope() as s:
-        approval = await GovernanceRepository(s).request_approval(
+        approval, is_new = await GovernanceRepository(s).request_approval(
             run_id=run_id,
             gate="final_decision",
             decision_class=decision_class,
@@ -716,22 +722,24 @@ async def human_decision(state: RunState) -> dict[str, Any]:
         )
         approval_id = str(approval.id)
         await RunRepository(s).set_stage(run_id, "awaiting_decision", status="awaiting_decision")
-        await AuditRepository(s).record(
-            event_type=EventType.APPROVAL_REQUESTED,
-            actor_type="orchestrator",
-            run_id=run_id,
-            metadata={
-                "approval_id": approval_id,
-                "gate": "final_decision",
-                "decision_class": decision_class,
-            },
-        )
+        if is_new:
+            await AuditRepository(s).record(
+                event_type=EventType.APPROVAL_REQUESTED,
+                actor_type="orchestrator",
+                run_id=run_id,
+                metadata={
+                    "approval_id": approval_id,
+                    "gate": "final_decision",
+                    "decision_class": decision_class,
+                },
+            )
 
-    await _notify(
-        state,
-        slack_blocks.decision_request(state.get("run_ref") or "Run", brief, approval_id),
-        f"{decision_class.upper()} decision required: {brief.recommendation[:200]}",
-    )
+    if is_new:
+        await _notify(
+            state,
+            slack_blocks.decision_request(state.get("run_ref") or "Run", brief, approval_id),
+            f"{decision_class.upper()} decision required: {brief.recommendation[:200]}",
+        )
 
     decision = interrupt(
         {

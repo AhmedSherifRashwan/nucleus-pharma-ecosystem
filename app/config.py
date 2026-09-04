@@ -50,7 +50,9 @@ class Settings(BaseSettings):
     # remain available. Recorded per-run so a report can state which route ran it.
     openclaw_auth_mode: AuthMode = "subscription"
 
-    openclaw_timeout_seconds: int = 300
+    # Observed: a specialist asked for report-length content with references
+    # runs 3-10 minutes. 300s failed two of five tasks on the first live run.
+    openclaw_timeout_seconds: int = 900
     openclaw_max_retries: int = 3
 
     # ---- Budgets (s12.2, s22) ----------------------------------------------

@@ -14,12 +14,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-# Observed on this deployment: a specialist turn runs 60-105s, and the evidence
-# correction round roughly doubles it when it fires.
-SECONDS_PER_SPECIALIST_GROUP = 110
-SECONDS_PLANNING = 40
-SECONDS_CHALLENGE = 70
-SECONDS_SYNTHESIS = 45
+# Observed on this deployment: a specialist turn runs 150-300s for report-length
+# work, and the evidence correction round adds to it when it fires. These are
+# deliberately generous - an estimate that keeps expiring reads as a stall.
+SECONDS_PER_SPECIALIST_GROUP = 260
+SECONDS_PLANNING = 60
+SECONDS_CHALLENGE = 120
+SECONDS_SYNTHESIS = 90
 SECONDS_REPORT = 15
 
 STAGE_LABELS: dict[str, str] = {

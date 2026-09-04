@@ -261,3 +261,34 @@ authoritative; a missing converter must not fail a pharmaceutical run.
 *Delivery:* the file is uploaded into the Slack thread through Slack's external
 upload flow (`files:write`, already granted). A path in a message is useless to a
 client who is not sitting at this machine.
+
+
+### D-016 · A gate is raised once per pause, not once per node execution
+LangGraph resumes an interrupted node by re-running its body from the top. The
+first live run showed the consequence: resuming the plan gate created a *second*
+approval row, posted a *second* plan message to Slack, and left the approval the
+user had actually clicked pending forever.
+
+*Decision:* `GovernanceRepository.request_approval` returns `(approval, is_new)`
+and reuses an open approval for the same run and gate. The node posts the Slack
+gate and writes the audit event only when the approval is new. A gate raised again
+after the first was decided is a genuinely new question, so it does create a new row.
+
+*Consequences:* the button the user is looking at stays the one that decides the run,
+and `scripts/repost_gate.py` re-posts the oldest pending gate rather than a duplicate.
+
+
+### D-017 · The gateway timeout is a deployment number, not a PRD number
+The first live report run failed two of five specialists with
+`gateway timeout after 300000ms`. The request asked each specialist for a table of
+contents and full report content with checked references — 3-10 minutes of work
+against a 5-minute ceiling.
+
+*Decision:* the shipped default rises to 900s (`openclaw_timeout_seconds`), and this
+deployment sets `DEFAULT_MAX_RUNTIME_SECONDS=3600` in `.env`. The §22 budget default
+in code stays at 1200s, because that number is the PRD's; a deployment overriding it
+is a local decision and the test now reads the code default rather than the `.env`.
+
+The Slack ETA constants were recalibrated at the same time (260s per specialist
+group, up from 110s). An estimate that keeps expiring reads as a stall, which is
+worse than a generous one.

@@ -326,7 +326,7 @@ async def test_reports_version_rather_than_overwrite():
 async def test_approval_is_decided_once_only():
     run_id = await _run()
     async with session_scope() as s:
-        approval = await GovernanceRepository(s).request_approval(
+        approval, _ = await GovernanceRepository(s).request_approval(
             run_id=run_id, gate="plan", decision_class="amber"
         )
         approval_id = approval.id

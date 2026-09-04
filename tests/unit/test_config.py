@@ -17,11 +17,18 @@ def _settings(**overrides) -> Settings:
     return Settings(**{**base, **overrides})
 
 
-def test_defaults_match_prd_budgets(settings):
-    assert settings.default_max_specialists == 6
-    assert settings.default_max_parallel_specialists == 4
-    assert settings.default_max_followup_rounds == 1
-    assert settings.default_max_runtime_seconds == 1200
+def test_defaults_match_prd_budgets():
+    """s22 budgets, read from the code rather than this deployment's .env.
+
+    A deployment may raise the runtime budget - this one does, because report-
+    length specialist work overran it - but the shipped default stays the
+    PRD's.
+    """
+    defaults = _settings()
+    assert defaults.default_max_specialists == 6
+    assert defaults.default_max_parallel_specialists == 4
+    assert defaults.default_max_followup_rounds == 1
+    assert defaults.default_max_runtime_seconds == 1200
 
 
 def test_gateway_url_is_informational_only():

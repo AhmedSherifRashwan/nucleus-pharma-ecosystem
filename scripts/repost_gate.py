@@ -38,7 +38,7 @@ async def repost(run_ref: str) -> dict:
         pending = await GovernanceRepository(session).pending_approvals(run.id)
         if not pending:
             raise ValueError(f"{run_ref} has no pending approval ({run.status})")
-        approval = pending[-1]
+        approval = pending[0]
         plan_data = run.plan
         brief_data = run.executive_brief
 

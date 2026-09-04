@@ -1,0 +1,9 @@
+2026-09-04T09:18:30.489805Z [info     ] langgraph_checkpointer_ready
+2026-09-04T09:18:32.956863Z [info     ] worker_started                 enabled=14 gateway_reachable=True profiles=16 worker_id=Ahmeds-MacBook-Air.local-36196
+2026-09-04T09:21:27.474353Z [info     ] job_claimed                    attempt=1 job_id=643b184f-e579-47bd-be2c-83b0288fb078 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 type=orchestrate worker=Ahmeds-MacBook-Air.local-36196
+2026-09-04T09:21:27.633700Z [info     ] stage_intake                   chars=582 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 worker=Ahmeds-MacBook-Air.local-36196
+HTTP Request: POST https://slack.com/api/chat.postMessage "HTTP/1.1 200 OK"
+2026-09-04T09:22:05.249123Z [info     ] plan_created                   agents=['A02', 'A03', 'A04', 'A14'] approval_required=True errors=None forced_approval=False groups=4 model=gpt-5.4 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 tasks=5 valid=True warnings=None worker=Ahmeds-MacBook-Air.local-36196
+HTTP Request: POST https://slack.com/api/chat.update "HTTP/1.1 200 OK"
+HTTP Request: POST https://slack.com/api/chat.postMessage "HTTP/1.1 200 OK"
+2026-09-04T09:22:05.938387Z [info     ] job_complete                   job_id=643b184f-e579-47bd-be2c-83b0288fb078 run_id=89e28168-6be1-4087-a1dd-698a740f6b82 worker=Ahmeds-MacBook-Air.local-36196

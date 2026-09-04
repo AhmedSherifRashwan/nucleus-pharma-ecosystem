@@ -1,0 +1,139 @@
+"""Install the Neucleus skills into the OpenClaw agent workspaces (PRD s7, s11).
+
+Skills live in this repository so they are versioned and reviewed with the code
+that backs them. OpenClaw loads them from an agent's `<workspace>/skills`, so they
+have to be installed there.
+
+Commands inside a skill run wherever the agent happens to be, so `{{NEUCLEUS_ROOT}}`
+is rendered to this checkout's absolute path at install time. The repository copy
+stays portable; the installed copy is concrete.
+"""
+
+from __future__ import annotations
+
+import argparse
+import shutil
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+SOURCE = PROJECT_ROOT / "openclaw" / "workspace" / "skills"
+PLACEHOLDER = "{{NEUCLEUS_ROOT}}"
+
+OPENCLAW_HOME = Path("~/.openclaw").expanduser()
+
+# Which agent gets which skills. The executive agent needs neither: it plans
+# through the gateway contract, not through skills.
+# The specialist gets the 16 profiles and the tool wrappers; approvals belong to
+# the Slack-facing agent alone, so a specialist can never decide its own gate.
+TARGETS: dict[str, tuple[Path, tuple[str, ...], tuple[str, ...]]] = {
+    "main": (
+        OPENCLAW_HOME / "workspace" / "skills",
+        ("pharma-ecosystem", "neucleus-approvals"),
+        (),
+    ),
+    "pharma-specialist": (
+        OPENCLAW_HOME / "workspaces" / "pharma-specialist" / "skills",
+        ("neucleus-*",),
+        ("neucleus-approvals",),
+    ),
+}
+
+
+def sources_for(patterns: tuple[str, ...], excluded: tuple[str, ...] = ()) -> list[Path]:
+    found: dict[str, Path] = {}
+    for pattern in patterns:
+        for path in sorted(SOURCE.glob(pattern)):
+            if path.name in excluded:
+                continue
+            if (path / "SKILL.md").is_file():
+                found[path.name] = path
+    return list(found.values())
+
+
+def render(text: str) -> str:
+    return text.replace(PLACEHOLDER, str(PROJECT_ROOT))
+
+
+def install_one(source: Path, destination: Path, *, check: bool) -> bool:
+    """Returns True when the destination already matches the source."""
+    expected = {
+        path.relative_to(source): render(path.read_text())
+        for path in source.rglob("*")
+        if path.is_file()
+    }
+    current = {
+        path.relative_to(destination): path.read_text()
+        for path in destination.rglob("*")
+        if path.is_file()
+    }
+    if current == expected:
+        return True
+    if check:
+        return False
+
+    if destination.exists():
+        shutil.rmtree(destination)
+    for relative, content in expected.items():
+        target = destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content)
+    return False
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Install Neucleus skills into OpenClaw.")
+    parser.add_argument(
+        "--check", action="store_true", help="report drift without writing anything"
+    )
+    args = parser.parse_args()
+
+    if not SOURCE.is_dir():
+        print(f"no skills directory at {SOURCE}", file=sys.stderr)
+        return 1
+
+    drifted: list[str] = []
+    for agent, (workspace_skills, patterns, excluded) in TARGETS.items():
+        sources = sources_for(patterns, excluded)
+        if not sources:
+            print(f"{agent}: no matching skills in {SOURCE}", file=sys.stderr)
+            return 1
+        if not args.check:
+            workspace_skills.mkdir(parents=True, exist_ok=True)
+        elif not workspace_skills.is_dir():
+            drifted.extend(f"{agent}/{s.name}" for s in sources)
+            continue
+
+        for source in sources:
+            up_to_date = install_one(source, workspace_skills / source.name, check=args.check)
+            if not up_to_date:
+                drifted.append(f"{agent}/{source.name}")
+
+        # Remove installed Neucleus skills that no longer exist in the repository.
+        names = {s.name for s in sources}
+        if workspace_skills.is_dir():
+            for existing in workspace_skills.iterdir():
+                if not existing.is_dir() or existing.name in names:
+                    continue
+                if not (existing.name.startswith(("neucleus-", "pharma-"))):
+                    continue
+                drifted.append(f"{agent}/{existing.name} (stale)")
+                if not args.check:
+                    shutil.rmtree(existing)
+
+        print(f"{agent}: {len(sources)} skill(s) -> {workspace_skills}")
+
+    if args.check and drifted:
+        print("skills are not installed or out of date:", file=sys.stderr)
+        for name in drifted:
+            print(f"  - {name}", file=sys.stderr)
+        print("run: uv run python scripts/install_skills.py", file=sys.stderr)
+        return 1
+    if not args.check:
+        print("installed. Restart the gateway for the agents to pick them up:")
+        print("  openclaw gateway restart")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

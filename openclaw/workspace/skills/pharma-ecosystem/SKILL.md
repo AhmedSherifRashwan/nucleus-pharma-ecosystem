@@ -31,7 +31,7 @@ outside pharmaceutical development.
 Run the enqueue script with the request and its Slack context:
 
 ```bash
-uv run python scripts/enqueue_run.py \
+cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
   --request "<the user's request verbatim>" \
   --channel "<slack channel id>" \
   --thread "<slack thread ts>" \

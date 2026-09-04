@@ -9,15 +9,15 @@
 | 2 | PostgreSQL Run Model: repositories and idempotency | **Complete** |
 | 3 | OpenClaw Client: gateway transport, routing, error normalisation | **Complete** |
 | 4 | Executive Planner: prompt, structured parsing, deterministic validator | **Complete** |
-| 5 | Generic Specialist Runtime: envelope, prompt composition, evidence enforcement | **Mostly complete** — tool skills outstanding |
+| 5 | Generic Specialist Runtime: envelope, prompt composition, evidence enforcement | **Complete** — tool skills live (D-013) |
 | 6 | LangGraph Core: all §8 states, PostgresSaver, human gates | **Complete** |
 | 7 | Parallel Specialists | **Complete** — covered by the Phase 6 dispatcher |
 | 8 | Challenge and Conflict | **Complete** — conflict detection, challenge, bounded follow-ups |
 | 9 | OpenClaw Pharma Skill: SKILL.md + enqueue_run.py | **Complete** |
 | 10 | Worker Service: claim, retry, cancellation, restart recovery | **Complete** |
 | 11 | Slack Delivery: plan preview, brief, decision gates | **Complete** |
-| 12 | Reports (DOCX/PDF) | Not started |
-| 13 | Human Decisions | **Mostly complete** — both gates in the graph; Slack UX pending |
+| 12 | Reports (DOCX/PDF) | **Complete** — deterministic DOCX, versioning, evidence QA, Slack upload |
+| 13 | Human Decisions | **Complete** — buttons decide and resume the run, authorised per §16 |
 | 14 | Expand to 16 Profiles | Not started |
 | 15 | Production Hardening | Not started |
 
@@ -260,3 +260,41 @@ scripts call into this codebase, so implementations stay in Python.
 
 Outstanding OpenClaw item: `commands.ownerAllowFrom` is unset, which blocks §16
 approval authorisation. It needs the operator's Slack member ID.
+
+
+## Phases 5 (tools), 12 and 13 — delivered
+
+**Gates:** ruff clean · mypy clean (57 source files) · 324 tests passing, 18 skipped.
+
+**Tool skills (§19, D-013).** `app/tools/` exposes the calculator, evidence store,
+artifact store and project search through `python -m app.tools.cli`, wrapped by the
+`neucleus-tools` skill. Authorisation is resolved from the database by run and task —
+the agent's identity is looked up, never taken from the caller — so a specialist
+cannot use a tool its profile does not carry, or write to another run. Refusal exits 2.
+
+**Live progress (§17.1).** `app/slack/progress.py` posts one message per run and edits
+it in place: the current stage, each specialist's status, elapsed time and an
+indicative range for time remaining, labelled approximate everywhere it appears.
+
+**Session isolation (§10.3).** Each specialist task gets its own gateway `sessionKey`,
+so parallel specialists cannot see one another's context.
+
+**Reports (§18, Phase 12).** `app/reports/` assembles the DOCX deterministically from
+persisted records — no model call. Every §18.1 section renders every time; an empty one
+says "None identified." rather than vanishing. Versions never overwrite (§18.3): each
+run has its own folder and the builder refuses an existing filename. Every `E-n` cited
+in the brief is checked against the evidence table before the file is written (§32.3).
+The file is uploaded into the Slack thread, and a report that cannot be produced marks
+the run `review_required` rather than completing quietly.
+
+**Decisions (§16, Phase 13).** `scripts/record_decision.py` turns a Slack button click
+into a recorded decision and a `resume` job. It authorises the person (configured
+approver, or the run's own requester), refuses a control belonging to a different gate,
+refuses a finished run, and treats a double-click as the same decision arriving twice.
+The graph node that raised the gate is the one that records it, so the decision and the
+resumption can never disagree.
+
+**Skill installation.** `scripts/install_skills.py` installs the repository's skills into
+the OpenClaw agent workspaces, rendering the checkout path into the commands. `--check`
+reports drift. The Slack-facing agent gets the launcher and approvals skills; the
+specialist gets the 16 profiles and the tools — a specialist can never decide its own gate.

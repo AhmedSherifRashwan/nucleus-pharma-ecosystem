@@ -66,6 +66,11 @@ class Settings(BaseSettings):
     report_template: str = "./templates/pharma_report_template.docx"
     report_pdf_enabled: bool = False
 
+    # ---- Slack approvals (s16) ---------------------------------------------
+    # Comma-separated Slack user ids permitted to decide any run's gates. Empty
+    # means only the user who started a run may decide it.
+    slack_approver_ids: str = ""
+
     # ---- Worker (s31) ------------------------------------------------------
     worker_poll_interval_seconds: float = 2.0
     worker_max_job_attempts: int = 3

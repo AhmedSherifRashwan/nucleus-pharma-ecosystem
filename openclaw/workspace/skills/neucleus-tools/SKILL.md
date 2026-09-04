@@ -20,7 +20,7 @@ Use this for **all** material arithmetic: mass balance, concentrations, dose per
 fill weight, yields, ratios, shelf-life extrapolation. Do not calculate mentally.
 
 ```bash
-uv run python -m app.tools.cli calculator \
+cd "{{NEUCLEUS_ROOT}}" && uv run python -m app.tools.cli calculator \
   --context "$NEUCLEUS_CONTEXT" --expression "250 / 800 * 100"
 ```
 
@@ -30,7 +30,7 @@ Record a source before you rely on it, then cite the returned `evidence_id` in
 your finding's `evidence_refs`.
 
 ```bash
-uv run python -m app.tools.cli save_evidence \
+cd "{{NEUCLEUS_ROOT}}" && uv run python -m app.tools.cli save_evidence \
   --context "$NEUCLEUS_CONTEXT" \
   --source-type regulatory \
   --source-title "FDA Product Specific Guidance, <molecule>, Jan 2024" \
@@ -56,20 +56,20 @@ did not read is fabrication, and it will be traced back to you.
 Long output belongs in an artifact, with the reference cited in `artifacts`.
 
 ```bash
-uv run python -m app.tools.cli save_artifact \
+cd "{{NEUCLEUS_ROOT}}" && uv run python -m app.tools.cli save_artifact \
   --context "$NEUCLEUS_CONTEXT" --title "Shell-fill compatibility assessment" \
   --content-file /tmp/assessment.md
 ```
 
 ```bash
-uv run python -m app.tools.cli read_artifact \
+cd "{{NEUCLEUS_ROOT}}" && uv run python -m app.tools.cli read_artifact \
   --context "$NEUCLEUS_CONTEXT" --artifact-ref ART-3
 ```
 
 ## Search project documents
 
 ```bash
-uv run python -m app.tools.cli project_search \
+cd "{{NEUCLEUS_ROOT}}" && uv run python -m app.tools.cli project_search \
   --context "$NEUCLEUS_CONTEXT" --query "gelatin bloom strength specification"
 ```
 

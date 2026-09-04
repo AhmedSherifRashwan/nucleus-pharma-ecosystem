@@ -292,3 +292,71 @@ is a local decision and the test now reads the code default rather than the `.en
 The Slack ETA constants were recalibrated at the same time (260s per specialist
 group, up from 110s). An estimate that keeps expiring reads as a stall, which is
 worse than a generous one.
+
+
+### D-018 · The report is composed from the work, not from summaries of it
+The first live report exposed the defect plainly. Synthesis received each
+specialist's `executive_summary` and a list of artifact references; nothing ever
+opened the artifacts. A 44 KB QTPP revision and a 28 KB CQA/CMA/CPP register sat in
+PostgreSQL while the delivered document rendered one heading per `SpecialistResult`
+in execution order — the same agent twice, the superseded draft printed beside its
+own correction. The document's structure *was* the execution, which is why it read
+as a transcript rather than a report.
+
+*Decision:* a composition stage between synthesis and rendering.
+
+`context.py` decides what may be seen: current work products in full, superseded
+ones held back for the crosswalk and the audit appendix, evidence with provenance,
+conflicts, risks and the review record. `composer.py` writes in stages — a dynamic
+outline from the request and the available material, then each section against its
+own sources, then closing matter, then references. `gate.py` checks the result in
+code before anything renders. `technical_builder.py` draws it.
+
+*Why staged rather than one call:* a single call asked for a 30-page report
+truncates; a section given only its own sources stays anchored to real work; and a
+staged composition can be inspected between stages, which one opaque call cannot.
+
+*What did not change:* the specialists, their prompts, the challenge stage, conflict
+detection, follow-ups and the quality gate are untouched. The problem was never the
+reasoning. Independent specialists disagreeing, and the system detecting and
+resolving it, is the feature — it now reaches the reader as a critical review and a
+revision crosswalk instead of as two contradictory sections.
+
+*Fallback:* composition can fail. When it does, the deterministic brief-only
+document still ships and says why. A run that produced real specialist work must
+never end with nothing in the client's hands.
+
+
+### D-019 · A superseded draft stays in the record and leaves the report
+`Artifact.version` existed but only reports used it. Work products had no lifecycle,
+so ART-7 (QTPP Rev 0) and ART-9 (QTPP Rev 1) were indistinguishable to every
+consumer, and both reached the reader as current.
+
+*Decision:* artifacts carry `status`, `supersedes_ref` and `superseded_by_ref`.
+`save_artifact --supersedes ART-7` records the replacement; the row is never
+deleted. The report context excludes superseded drafts from the composer's material
+and offers them to the revision crosswalk and the audit appendix instead. The
+pre-release gate fails the report if a superseded reference appears in the body.
+
+*Consequence:* the database keeps the complete forensic history and the client-facing
+report carries the current controlled interpretation. Those are different documents
+serving different readers, and conflating them is what produced a report containing
+both a wrong regulatory identification and its own correction.
+
+
+### D-020 · A reference states what it is, or states that nobody checked
+The evidence register recorded a title, a reliability level and sometimes a URL. The
+report printed the title. "FDA guidance" cannot be checked by the person who has to
+defend it.
+
+*Decision:* `Reference` carries organisation, title, document identifier, version,
+date, authority, locator, URL, retrieval date, evidence id and a verification status.
+The composer structures these from what was actually recorded and is instructed to
+leave a field null rather than guess. `primary_source_verified` requires an
+authoritative source with evidence it was retrieved; anything less is
+`partially_verified`, `not_retrieved` or `unverified`, and the document prints that
+status beside the citation.
+
+*Consequence:* a reader can tell a verified primary source from a plausible-looking
+citation nobody opened. The gate reports imprecise references without blocking —
+the honest label is the deliverable, not the absence of the reference.

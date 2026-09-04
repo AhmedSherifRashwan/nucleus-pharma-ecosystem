@@ -314,3 +314,54 @@ def test_a_real_project_name_is_kept():
 def test_the_subject_comes_from_the_users_own_words():
     subject = subject_from_request("Assess the dissolution slow-down at 6 months.")
     assert "dissolution" in subject.lower()
+
+
+# -- honesty about status ----------------------------------------------------
+
+
+def test_an_assumption_is_not_rendered_as_established_fact(tmp_path):
+    """s15: a labelled assumption must reach the reader labelled."""
+    rep = report(
+        body_sections=[
+            ReportSection(
+                heading="Quality target product profile",
+                body="The reference formulation is assumed representative.",
+                status="provisional",
+            )
+        ],
+        executive_brief=ExecutiveBriefSection(
+            executive_summary="Workable.",
+            objective_and_scope="Scope.",
+            overall_recommendation="Proceed.",
+            confidence_and_evidence_status="Medium.",
+            critical_assumptions=["The reference formulation is representative."],
+        ),
+    )
+    body = text_of(render(tmp_path, rep).path)
+    assert "Status: PROVISIONAL" in body
+    assert "Critical assumptions" in body
+    assert "The reference formulation is representative." in body
+
+
+def test_a_screening_level_position_is_labelled(tmp_path):
+    rep = report(
+        body_sections=[
+            ReportSection(heading="Critical quality attributes", body="Ranked.", status="screening")
+        ]
+    )
+    assert "Screening-level" in text_of(render(tmp_path, rep).path)
+
+
+@pytest.mark.skipif(
+    not __import__("app.reports.pdf", fromlist=["pdf_available"]).pdf_available(),
+    reason="LibreOffice is not installed on this machine",
+)
+def test_the_pdf_carries_the_same_sections(tmp_path):
+    import asyncio
+
+    from app.reports.pdf import convert_to_pdf
+
+    out = render(tmp_path)
+    pdf = asyncio.run(convert_to_pdf(out.path))
+    assert pdf is not None and pdf.is_file()
+    assert pdf.stat().st_size > 10_000

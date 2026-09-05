@@ -1,2 +1,123 @@
 2026-09-05T18:29:56.659662Z [info     ] langgraph_checkpointer_ready
 2026-09-05T18:30:06.024459Z [info     ] worker_started                 enabled=14 gateway_reachable=True profiles=16 worker_id=Mac-12138
+2026-09-05T18:38:19.336635Z [info     ] job_claimed                    attempt=1 job_id=bed497d2-a97a-4092-8f7b-7cf81c5eeb01 run_id=af64b169-c3ec-4026-a455-f1a8d800da7a type=orchestrate worker=Mac-12138
+2026-09-05T18:38:19.373556Z [info     ] stage_intake                   chars=582 run_id=af64b169-c3ec-4026-a455-f1a8d800da7a worker=Mac-12138
+HTTP Request: POST https://slack.com/api/chat.postMessage "HTTP/1.1 200 OK"
+2026-09-05T18:38:26.853308Z [error    ] job_failed                     error='GatewayError: Codex session became active in another runner; wait for it to finish before continuing' job_id=bed497d2-a97a-4092-8f7b-7cf81c5eeb01 run_id=af64b169-c3ec-4026-a455-f1a8d800da7a worker=Mac-12138
+Traceback (most recent call last):
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/worker.py", line 111, in _process_one
+    await self._execute(app, run_id, job_type, payload)
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/worker.py", line 167, in _execute
+    await execute_run(app, initial_state, run_id)
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/orchestration/engine.py", line 53, in execute_run
+    return await app.ainvoke(initial_state, config=thread_config(run_id))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/pregel/main.py", line 4090, in ainvoke
+    async for chunk in self.astream(
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/pregel/main.py", line 3440, in astream
+    async for _ in runner.atick(
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/pregel/_runner.py", line 396, in atick
+    await arun_with_retry(
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/pregel/_retry.py", line 744, in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py", line 756, in ainvoke
+    input = await asyncio.create_task(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py", line 522, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/orchestration/graph.py", line 241, in plan_node
+    outcome = await create_plan(
+              ^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/orchestration/planner.py", line 71, in create_plan
+    plan, usage, route = await client.complete_structured(
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/providers/openclaw_client.py", line 488, in complete_structured
+    reply = await self.call_agent(
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/providers/openclaw_client.py", line 421, in call_agent
+    raise classify_error(
+app.providers.openclaw_client.GatewayError: Codex session became active in another runner; wait for it to finish before continuing
+During task with name 'plan' and id 'fd3463a6-9410-f1ec-c75f-f6052bd1603c'
+2026-09-05T18:38:56.964840Z [info     ] job_claimed                    attempt=2 job_id=bed497d2-a97a-4092-8f7b-7cf81c5eeb01 run_id=af64b169-c3ec-4026-a455-f1a8d800da7a type=orchestrate worker=Mac-12138
+Deserializing unregistered type app.schemas.planning.RunBudget from checkpoint. This will be blocked in a future version. Set LANGGRAPH_STRICT_MSGPACK=true to block now, or add to allowed_msgpack_modules to allow explicitly: [('app.schemas.planning', 'RunBudget')]
+2026-09-05T18:38:56.981325Z [info     ] stage_intake                   chars=582 run_id=af64b169-c3ec-4026-a455-f1a8d800da7a worker=Mac-12138
+HTTP Request: POST https://slack.com/api/chat.postMessage "HTTP/1.1 200 OK"
+2026-09-05T18:38:59.620420Z [error    ] job_failed                     error='GatewayError: Codex session became active in another runner; wait for it to finish before continuing' job_id=bed497d2-a97a-4092-8f7b-7cf81c5eeb01 run_id=af64b169-c3ec-4026-a455-f1a8d800da7a worker=Mac-12138
+Traceback (most recent call last):
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/worker.py", line 111, in _process_one
+    await self._execute(app, run_id, job_type, payload)
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/worker.py", line 167, in _execute
+    await execute_run(app, initial_state, run_id)
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/orchestration/engine.py", line 53, in execute_run
+    return await app.ainvoke(initial_state, config=thread_config(run_id))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/pregel/main.py", line 4090, in ainvoke
+    async for chunk in self.astream(
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/pregel/main.py", line 3440, in astream
+    async for _ in runner.atick(
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/pregel/_runner.py", line 396, in atick
+    await arun_with_retry(
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/pregel/_retry.py", line 744, in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py", line 756, in ainvoke
+    input = await asyncio.create_task(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py", line 522, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/orchestration/graph.py", line 241, in plan_node
+    outcome = await create_plan(
+              ^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/orchestration/planner.py", line 71, in create_plan
+    plan, usage, route = await client.complete_structured(
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/providers/openclaw_client.py", line 488, in complete_structured
+    reply = await self.call_agent(
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/providers/openclaw_client.py", line 421, in call_agent
+    raise classify_error(
+app.providers.openclaw_client.GatewayError: Codex session became active in another runner; wait for it to finish before continuing
+During task with name 'plan' and id '055aa0dd-900f-2770-7ea4-436c13b1b984'
+2026-09-05T18:39:59.781272Z [info     ] job_claimed                    attempt=3 job_id=bed497d2-a97a-4092-8f7b-7cf81c5eeb01 run_id=af64b169-c3ec-4026-a455-f1a8d800da7a type=orchestrate worker=Mac-12138
+2026-09-05T18:39:59.800104Z [info     ] stage_intake                   chars=582 run_id=af64b169-c3ec-4026-a455-f1a8d800da7a worker=Mac-12138
+HTTP Request: POST https://slack.com/api/chat.postMessage "HTTP/1.1 200 OK"
+2026-09-05T18:40:02.114842Z [error    ] job_failed                     error='GatewayError: Codex session became active in another runner; wait for it to finish before continuing' job_id=bed497d2-a97a-4092-8f7b-7cf81c5eeb01 run_id=af64b169-c3ec-4026-a455-f1a8d800da7a worker=Mac-12138
+Traceback (most recent call last):
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/worker.py", line 111, in _process_one
+    await self._execute(app, run_id, job_type, payload)
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/worker.py", line 167, in _execute
+    await execute_run(app, initial_state, run_id)
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/orchestration/engine.py", line 53, in execute_run
+    return await app.ainvoke(initial_state, config=thread_config(run_id))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/pregel/main.py", line 4090, in ainvoke
+    async for chunk in self.astream(
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/pregel/main.py", line 3440, in astream
+    async for _ in runner.atick(
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/pregel/_runner.py", line 396, in atick
+    await arun_with_retry(
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/pregel/_retry.py", line 744, in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py", line 756, in ainvoke
+    input = await asyncio.create_task(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/.venv/lib/python3.12/site-packages/langgraph/_internal/_runnable.py", line 522, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/orchestration/graph.py", line 241, in plan_node
+    outcome = await create_plan(
+              ^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/orchestration/planner.py", line 71, in create_plan
+    plan, usage, route = await client.complete_structured(
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/providers/openclaw_client.py", line 488, in complete_structured
+    reply = await self.call_agent(
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ahmed/Documents/Agentic-Swarm-Pharmcal AI/pharma-ai-ecosystem/app/providers/openclaw_client.py", line 421, in call_agent
+    raise classify_error(
+app.providers.openclaw_client.GatewayError: Codex session became active in another runner; wait for it to finish before continuing
+During task with name 'plan' and id '8cac476e-4719-23e9-ba35-21d175b3c736'

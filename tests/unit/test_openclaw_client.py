@@ -399,3 +399,53 @@ def test_an_in_flight_turn_is_transient_not_a_failure():
     from app.providers.openclaw_client import GatewayTransientError, classify_error
 
     assert isinstance(classify_error("agent turn status=in_flight: "), GatewayTransientError)
+
+
+def test_a_session_held_by_another_runner_is_transient():
+    """One abandoned turn must not fail every later run."""
+    from app.providers.openclaw_client import GatewayTransientError, classify_error
+
+    for message in (
+        "Codex session became active in another runner; wait for it to finish before continuing",
+        "agent turn status=in_flight: ",
+    ):
+        assert isinstance(classify_error(message), GatewayTransientError), message
+
+
+def test_each_call_gets_its_own_session_key():
+    """Sharing the agent's default session is what let one lock block everything."""
+    from app.providers.openclaw_client import session_key_for
+
+    assert session_key_for("run-1:plan") != session_key_for("run-1:synthesis")
+    assert session_key_for("run-1:plan") == session_key_for("run-1:plan")
+    # No key still yields a session of its own rather than the shared default.
+    assert session_key_for(None) != session_key_for(None)
+
+
+@pytest.mark.asyncio
+async def test_a_transient_gateway_state_is_retried_before_failing(monkeypatch):
+    from app.providers import openclaw_client as client_mod
+    from app.providers.openclaw_client import (
+        AgentRoute,
+        GatewayTransientError,
+        OpenClawClient,
+    )
+
+    monkeypatch.setattr(client_mod, "TRANSIENT_RETRY_DELAY_SECONDS", 0)
+    client = OpenClawClient()
+    calls = {"n": 0}
+
+    async def flaky(route, message, **kw):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise GatewayTransientError("became active in another runner")
+        return client_mod.GatewayReply(
+            text="ok", usage=client_mod.Usage(), route=client.route_info(route), run_id="r"
+        )
+
+    monkeypatch.setattr(client, "call_agent", flaky)
+    reply = await client._call_agent_with_backoff(
+        AgentRoute.EXECUTIVE, "hello", idempotency_key="k", session_key="s", timeout_seconds=5
+    )
+    assert reply.text == "ok"
+    assert calls["n"] == 2

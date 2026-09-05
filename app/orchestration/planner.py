@@ -18,6 +18,7 @@ from app.providers.openclaw_client import (
     RouteInfo,
     Usage,
     get_gateway_client,
+    session_key_for,
 )
 from app.schemas.planning import Plan, RunBudget
 
@@ -74,6 +75,7 @@ async def create_plan(
         user=user_prompt,
         schema=Plan,
         idempotency_key=idempotency_key,
+        session_key=session_key_for(idempotency_key),
     )
 
     validation = validate_plan(plan, registry, budget, user_request=user_request)

@@ -120,7 +120,27 @@ _ERROR_SIGNATURES: tuple[tuple[str, type[GatewayError]], ...] = (
     # transient, not a failure of the request.
     ("in_flight", GatewayTransientError),
     ("already running", GatewayTransientError),
+    ("became active in another runner", GatewayTransientError),
+    ("another runner", GatewayTransientError),
+    ("wait for it to finish", GatewayTransientError),
 )
+
+
+# A held session or an in-flight turn clears in seconds, not minutes.
+TRANSIENT_RETRY_ATTEMPTS = 3
+TRANSIENT_RETRY_DELAY_SECONDS = 6
+
+
+def session_key_for(idempotency_key: str | None) -> str:
+    """A gateway session scoped to one call.
+
+    Calls with no session key share the agent's default session, and the gateway
+    refuses a turn on a session another runner holds - so one abandoned turn
+    blocks every later run. Deriving the session from the call's own key keeps
+    each stage of each run isolated (s10.3).
+    """
+    base = (idempotency_key or uuid.uuid4().hex)[:96]
+    return f"call:{base}"
 
 
 def classify_error(message: str, *, retryable: bool | None = None) -> GatewayError:
@@ -459,6 +479,47 @@ class OpenClawClient:
             raw=payload,
         )
 
+    async def _call_agent_with_backoff(
+        self,
+        route: AgentRoute,
+        message: str,
+        *,
+        idempotency_key: str | None,
+        session_key: str | None,
+        timeout_seconds: int | None,
+    ) -> GatewayReply:
+        """One turn, retried while the gateway is momentarily unable to take it.
+
+        A session another runner still holds, or a turn left in flight by a client
+        that died, clears on its own. Failing the run over it discards work that
+        was only ever waiting.
+        """
+        delay = TRANSIENT_RETRY_DELAY_SECONDS
+        for attempt in range(TRANSIENT_RETRY_ATTEMPTS):
+            try:
+                return await self.call_agent(
+                    route,
+                    message,
+                    idempotency_key=(
+                        idempotency_key if attempt == 0 else f"{idempotency_key}-r{attempt}"
+                    ),
+                    session_key=(session_key if attempt == 0 else f"{session_key}-r{attempt}"),
+                    timeout_seconds=timeout_seconds,
+                )
+            except GatewayTransientError as exc:
+                if attempt == TRANSIENT_RETRY_ATTEMPTS - 1:
+                    raise
+                log.warning(
+                    "gateway_transient_retry",
+                    route=route.value,
+                    attempt=attempt + 1,
+                    delay_seconds=delay,
+                    error=str(exc)[:160],
+                )
+                await asyncio.sleep(delay)
+                delay *= 2
+        raise AssertionError("unreachable")
+
     # -- structured output --------------------------------------------------
 
     async def complete_structured(
@@ -485,7 +546,7 @@ class OpenClawClient:
         base_key = idempotency_key or f"structured-{uuid.uuid4().hex[:12]}"
 
         for attempt in range(2):
-            reply = await self.call_agent(
+            reply = await self._call_agent_with_backoff(
                 route,
                 message,
                 # A correction is a distinct turn and needs its own key.

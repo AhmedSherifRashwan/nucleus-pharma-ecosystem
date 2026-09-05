@@ -19,6 +19,7 @@ from app.providers.openclaw_client import (
     RouteInfo,
     Usage,
     get_gateway_client,
+    session_key_for,
 )
 from app.schemas.executive import ChallengeResult
 from app.schemas.planning import Plan, PlannedTask, RunBudget
@@ -125,6 +126,7 @@ async def challenge_results(
         user=user_prompt,
         schema=ChallengeResult,
         idempotency_key=idempotency_key,
+        session_key=session_key_for(idempotency_key),
     )
 
     # Follow-ups are proposals and pass the same policy gate as a plan.

@@ -95,9 +95,24 @@ class StubClient:
     def __init__(self, *, fail: set[str] | None = None):
         self.prompts: dict[str, str] = {}
         self.fail = fail or set()
+        self.session_keys: list[str] = []
+
+    AGENT_IDS = {
+        "executive": "pharma-executive",
+        "specialist": "pharma-specialist",
+        "local": "pharma-local",
+    }
+
+    def agent_id_for(self, route):
+        return self.AGENT_IDS[route.value]
+
+    def session_key_for_route(self, route, suffix: str) -> str:
+        return f"agent:{self.agent_id_for(route)}:{suffix}"
 
     async def complete_structured(self, *, route, system, user, schema, **kw):
         name = schema.__name__
+        if kw.get("session_key"):
+            self.session_keys.append(kw["session_key"])
         self.prompts.setdefault(name, "")
         self.prompts[name] += user
         if name in self.fail:
@@ -364,3 +379,41 @@ def test_the_shipped_default_route_is_the_executive_agent():
 
     defaults = Settings(app_env="development", openclaw_gateway_token="t", _env_file=None)
     assert defaults.report_composer_route == "executive"
+
+
+@pytest.mark.asyncio
+async def test_the_composer_session_key_names_the_real_agent(monkeypatch):
+    """RUN-2026-0007 lost its report to a key that named the route, not the agent.
+
+    The gateway checks that `agent:<id>:...` matches the agent the turn goes to,
+    and rejected every composition call. The run fell back to the brief-only
+    document, and the failure surfaced only in the audit trail.
+    """
+    from app.config import get_settings
+
+    client = StubClient()
+    monkeypatch.setenv("REPORT_COMPOSER_ROUTE", "specialist")
+    get_settings.cache_clear()
+    try:
+        await compose_report(context(), client=client)
+    finally:
+        get_settings.cache_clear()
+
+    assert client.session_keys
+    for key in client.session_keys:
+        assert key.startswith("agent:pharma-specialist:"), key
+
+
+@pytest.mark.asyncio
+async def test_the_session_key_follows_the_configured_route(monkeypatch):
+    from app.config import get_settings
+
+    client = StubClient()
+    monkeypatch.setenv("REPORT_COMPOSER_ROUTE", "executive")
+    get_settings.cache_clear()
+    try:
+        await compose_report(context(), client=client)
+    finally:
+        get_settings.cache_clear()
+
+    assert all(k.startswith("agent:pharma-executive:") for k in client.session_keys)

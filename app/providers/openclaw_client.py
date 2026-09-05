@@ -337,12 +337,33 @@ class OpenClawClient:
             AgentRoute.LOCAL: s.openclaw_local_agent,
         }[route]
 
+    def session_key_for_route(self, route: AgentRoute, suffix: str) -> str:
+        """A session key the gateway will accept for this route.
+
+        The gateway checks that a key of the form `agent:<id>:...` names the agent
+        the turn is actually going to, so the id has to come from the same place
+        the turn's does.
+        """
+        return f"agent:{self.agent_id_for(route)}:{suffix}"
+
     def route_info(self, route: AgentRoute) -> RouteInfo:
         return RouteInfo(
             route=route,
             agent_id=self.agent_id_for(route),
             auth_mode=self._settings.openclaw_auth_mode,
         )
+
+    def _assert_session_key_matches(self, route: AgentRoute, session_key: str | None) -> None:
+        """A session key naming the wrong agent is a coding error, not a runtime one."""
+        if not session_key or not session_key.startswith("agent:"):
+            return
+        named = session_key.split(":", 2)[1]
+        expected = self.agent_id_for(route)
+        if named != expected:
+            raise ValueError(
+                f"session key names agent {named!r} but the turn routes to "
+                f"{expected!r}; build it with session_key_for_route()"
+            )
 
     def build_params(
         self,
@@ -429,6 +450,7 @@ class OpenClawClient:
     ) -> GatewayReply:
         """One agent turn through the gateway."""
         timeout = timeout_seconds or self._settings.openclaw_timeout_seconds
+        self._assert_session_key_matches(route, session_key)
         params = self.build_params(route, message, idempotency_key, session_key)
 
         started = time.monotonic()

@@ -78,6 +78,18 @@ class FakeGateway:
         self.section_calls = 0
         self.references: list[dict[str, Any]] = []
 
+    AGENT_IDS = {
+        "executive": "pharma-executive",
+        "specialist": "pharma-specialist",
+        "local": "pharma-local",
+    }
+
+    def agent_id_for(self, route):
+        return self.AGENT_IDS[route.value]
+
+    def session_key_for_route(self, route, suffix: str) -> str:
+        return f"agent:{self.agent_id_for(route)}:{suffix}"
+
     async def complete_structured(
         self,
         *,

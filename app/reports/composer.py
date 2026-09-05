@@ -512,8 +512,8 @@ async def compose_report(
     # refuses the new call with `in_flight` until that turn settles.
     nonce = uuid.uuid4().hex[:8]
     key_prefix = f"{context.run_ref}:v{report_version}:report:{nonce}"
-    session_key = (
-        f"agent:{composer_route().value}:{context.run_ref}-report-v{report_version}-{nonce}"
+    session_key = client.session_key_for_route(
+        composer_route(), f"{context.run_ref}-report-v{report_version}-{nonce}"
     )
     warnings: list[str] = []
     total = Usage()

@@ -449,3 +449,21 @@ async def test_a_transient_gateway_state_is_retried_before_failing(monkeypatch):
     )
     assert reply.text == "ok"
     assert calls["n"] == 2
+
+
+def test_a_session_key_naming_the_wrong_agent_is_refused_at_the_boundary():
+    """The gateway's rejection arrived far from its cause; this catches it here."""
+    import pytest as _pytest
+
+    from app.providers.openclaw_client import AgentRoute, OpenClawClient
+
+    client = OpenClawClient()
+    with _pytest.raises(ValueError, match="session_key_for_route"):
+        client._assert_session_key_matches(AgentRoute.SPECIALIST, "agent:specialist:whatever")
+
+    # The correct key, and keys with no agent segment, both pass.
+    client._assert_session_key_matches(
+        AgentRoute.SPECIALIST, client.session_key_for_route(AgentRoute.SPECIALIST, "x")
+    )
+    client._assert_session_key_matches(AgentRoute.SPECIALIST, "call:run-1:plan")
+    client._assert_session_key_matches(AgentRoute.SPECIALIST, None)

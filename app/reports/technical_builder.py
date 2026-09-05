@@ -146,6 +146,38 @@ class TechnicalReportRenderer:
                     for run in paragraph.runs:
                         run.font.size = Pt(9)
 
+    def _status_block(self, doc: DocxDocument, section: ReportSection) -> None:
+        """The section's standing, once, under its heading.
+
+        Everything a reader needs to calibrate the section is here — status,
+        evidence confidence, and the gaps it depends on — so the prose beneath can
+        be written plainly. A caveat repeated in every paragraph stops being read;
+        one stated where the reader starts does not.
+        """
+        parts: list[str] = []
+        if section.status:
+            parts.append(f"Section status: {STATUS_LABEL.get(section.status, section.status)}")
+        if section.evidence_confidence:
+            parts.append(
+                f"Evidence confidence: {section.evidence_confidence.replace('_', ' ').title()}"
+            )
+        if section.open_gap_refs:
+            parts.append(f"Unresolved gaps: {', '.join(section.open_gap_refs)}")
+        if not parts and not section.status_note:
+            return
+
+        paragraph = doc.add_paragraph()
+        if parts:
+            run = paragraph.add_run(" · ".join(parts))
+            run.bold = True
+            run.font.size = Pt(9)
+        if section.status_note:
+            if parts:
+                paragraph.add_run("\n")
+            note = paragraph.add_run(section.status_note)
+            note.italic = True
+            note.font.size = Pt(9)
+
     def _report_table(self, doc: DocxDocument, table: ReportTable) -> None:
         self._table(doc, table.columns, table.rows, title=table.title)
         if table.note:
@@ -153,10 +185,7 @@ class TechnicalReportRenderer:
 
     def _section(self, doc: DocxDocument, section: ReportSection, level: int, number: str) -> None:
         doc.add_heading(f"{number} {section.heading}", level=min(level, 4))
-        if section.status or section.status_note:
-            label = STATUS_LABEL.get(section.status or "", section.status or "")
-            note = f" — {section.status_note}" if section.status_note else ""
-            self._para(doc, f"Status: {label}{note}".strip(" —"), italic=True)
+        self._status_block(doc, section)
         self._body(doc, section.body)
         for table in section.tables:
             self._report_table(doc, table)

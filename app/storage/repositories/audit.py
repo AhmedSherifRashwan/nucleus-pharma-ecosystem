@@ -44,6 +44,7 @@ class EventType:
 
     EVIDENCE_CREATED = "evidence.created"
     ARTIFACT_CREATED = "artifact.created"
+    DOCUMENT_INGESTED = "document.ingested"
     REPORT_GENERATED = "report.generated"
 
 

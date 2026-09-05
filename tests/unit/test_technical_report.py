@@ -338,7 +338,7 @@ def test_an_assumption_is_not_rendered_as_established_fact(tmp_path):
         ),
     )
     body = text_of(render(tmp_path, rep).path)
-    assert "Status: PROVISIONAL" in body
+    assert "Section status: PROVISIONAL" in body
     assert "Critical assumptions" in body
     assert "The reference formulation is representative." in body
 
@@ -350,6 +350,40 @@ def test_a_screening_level_position_is_labelled(tmp_path):
         ]
     )
     assert "Screening-level" in text_of(render(tmp_path, rep).path)
+
+
+def test_the_status_block_states_standing_once_under_the_heading(tmp_path):
+    """A caveat in every paragraph stops being read; one status line does not."""
+    rep = report(
+        body_sections=[
+            ReportSection(
+                heading="Quality target product profile",
+                body="The release-controlling attribute is dissolution." + DETAIL * 3,
+                status="provisional",
+                evidence_confidence="medium",
+                open_gap_refs=["G-02", "G-07"],
+                status_note="Framework established; numeric limits provisional.",
+            )
+        ],
+        information_gaps=[
+            InformationGap(gap_id="G-02", category="regulatory", gap="EU status unconfirmed."),
+            InformationGap(gap_id="G-07", category="analytical", gap="No dissolution method."),
+        ],
+    )
+    body = text_of(render(tmp_path, rep).path)
+    assert "Section status: PROVISIONAL" in body
+    assert "Evidence confidence: Medium" in body
+    assert "Unresolved gaps: G-02, G-07" in body
+    assert "Framework established; numeric limits provisional." in body
+    # The technical content is present without being hedged sentence by sentence.
+    assert "release-controlling attribute is dissolution" in body
+
+
+def test_a_section_with_no_caveats_gets_no_status_line(tmp_path):
+    rep = report(
+        body_sections=[ReportSection(heading="Regulatory basis", body="Established." + DETAIL)]
+    )
+    assert "Section status:" not in text_of(render(tmp_path, rep).path)
 
 
 @pytest.mark.skipif(

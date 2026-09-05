@@ -1,0 +1,26 @@
+2026-09-05T22:01:38.778294Z [info     ] report_context_built           chars=188759 current_artifacts=7 evidence=39 run_ref=RUN-2026-0007 superseded_artifacts=0
+2026-09-05T22:03:27.499818Z [info     ] report_outline                 sections=6 title='Quality Target Product Profile and Critical Quality Attribute Framework — Midostaurin 25 mg Soft Gelatin Capsules'
+2026-09-05T22:17:06.235260Z [info     ] report_composed                body_chars=97206 references=39 run_ref=RUN-2026-0007 sections=6 warnings=0
+2026-09-05T22:17:06.625440Z [info     ] technical_report_rendered      bytes=100002 filename=Quality_Target_Product_Profile_and_Critical_Quality_Attribute_Framework_Midostaurin_25_mg_Soft_Gelatin_Capsules_Technical_Report_RUN-2026-0007_v2.docx sections=6 words=13560
+2026-09-05T22:17:06.698698Z [info     ] technical_report_rendered      bytes=44826 filename=Quality_Target_Product_Profile_and_Critical_Quality_Attribute_Framework_Midostaurin_25_mg_Soft_Gelatin_Capsules_Executive_Decision_Brief_RUN-2026-0007_v2.docx sections=6 words=2340
+2026-09-05T22:17:06.722483Z [info     ] technical_report_ready         gate_failures=2 references=39 run_ref=RUN-2026-0007 sections=6 version=2 words=13560
+{
+ "run_ref": "RUN-2026-0007",
+ "version": 2,
+ "title": "Quality Target Product Profile and Critical Quality Attribute Framework \u2014 Midostaurin 25 mg Soft Gelatin Capsules",
+ "sections": 6,
+ "words": 13560,
+ "review_required": true,
+ "files": [
+  "data/artifacts/reports/RUN-2026-0007_af64b169/Quality_Target_Product_Profile_and_Critical_Quality_Attribute_Framework_Midostaurin_25_mg_Soft_Gelatin_Capsules_Technical_Report_RUN-2026-0007_v2.docx",
+  "data/artifacts/reports/RUN-2026-0007_af64b169/Quality_Target_Product_Profile_and_Critical_Quality_Attribute_Framework_Midostaurin_25_mg_Soft_Gelatin_Capsules_Executive_Decision_Brief_RUN-2026-0007_v2.docx"
+ ],
+ "warnings": [
+  "references_are_precise: 4 reference(s) carry neither a document identifier nor a locator: R26, R27, R28, R29",
+  "no_completion_blocking_gap: gaps that block a defensible conclusion remain open: Independently verified reference-product identity and status (Orange Book entry/reference-listed-drug coding, current approved label, EU EPAR/SmPC).; Confirmation of whether a product-specific FDA guidance exists for this molecule, and the scope of applicable bioequivalence guidance (including whether the dosage form is unambiguously within its stated scope).; Current compendial monograph status (USP-NF, Ph. Eur., BP) for the drug substance and finished capsules."
+ ],
+ "gate_failures": [
+  "references_are_precise: 4 reference(s) carry neither a document identifier nor a locator: R26, R27, R28, R29",
+  "no_completion_blocking_gap: gaps that block a defensible conclusion remain open: Independently verified reference-product identity and status (Orange Book entry/reference-listed-drug coding, current approved label, EU EPAR/SmPC).; Confirmation of whether a product-specific FDA guidance exists for this molecule, and the scope of applicable bioequivalence guidance (including whether the dosage form is unambiguously within its stated scope).; Current compendial monograph status (USP-NF, Ph. Eur., BP) for the drug substance and finished capsules."
+ ]
+}

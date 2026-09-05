@@ -98,6 +98,10 @@ class ReportSection(StrictModel):
     # "established mechanism, provisional limits" to one code loses the part a
     # reader needs.
     status_note: str | None = Field(default=None, max_length=400)
+    # Stated once in the section's status block so the prose does not have to
+    # hedge every sentence. A caveat repeated forty times stops being read.
+    evidence_confidence: ConfidenceLevel | None = None
+    open_gap_refs: list[str] = Field(default_factory=list)
 
     def walk(self) -> list[tuple[int, ReportSection]]:
         """This section and its descendants, with depth (0 for self)."""
@@ -169,6 +173,9 @@ class RevisionEntry(StrictModel):
 
 
 class InformationGap(StrictModel):
+    # Assigned deterministically after composition (G-01, G-02, ...) so a section
+    # can point at a gap instead of restating it.
+    gap_id: str | None = None
     category: Literal[
         "regulatory", "scientific", "analytical", "formulation", "manufacturing", "quality"
     ]

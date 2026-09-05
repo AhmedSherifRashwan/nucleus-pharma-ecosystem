@@ -417,3 +417,43 @@ async def test_the_session_key_follows_the_configured_route(monkeypatch):
         get_settings.cache_clear()
 
     assert all(k.startswith("agent:pharma-executive:") for k in client.session_keys)
+
+
+# -- gaps referenced once, not restated --------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_gaps_are_given_stable_ids():
+    outcome = await compose_report(context(), client=StubClient())
+    ids = [g.gap_id for g in outcome.report.information_gaps]
+    assert ids == [f"G-{i:02d}" for i in range(1, len(ids) + 1)]
+
+
+@pytest.mark.asyncio
+async def test_a_section_pointing_at_a_gap_that_does_not_exist_loses_the_reference():
+    """A status line citing G-07 with no G-07 sends the reader looking for nothing."""
+
+    class WithGapRefs(StubClient):
+        async def complete_structured(self, *, route, system, user, schema, **kw):
+            if schema.__name__ == "SectionDraft":
+                return (
+                    schema.model_validate({**SECTION, "evidence_confidence": "medium"}),
+                    Usage(),
+                    None,
+                )
+            return await super().complete_structured(
+                route=route, system=system, user=user, schema=schema, **kw
+            )
+
+    outcome = await compose_report(context(), client=WithGapRefs())
+    for section in outcome.report.body_sections:
+        assert section.open_gap_refs == []
+
+
+@pytest.mark.asyncio
+async def test_the_composer_is_told_to_state_uncertainty_once():
+    client = StubClient()
+    await compose_report(context(), client=client)
+    prompt = client.prompts["SectionDraft"]
+    assert "ONCE" in prompt
+    assert "Do not qualify every sentence" in prompt

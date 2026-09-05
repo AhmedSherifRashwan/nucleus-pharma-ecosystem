@@ -72,7 +72,11 @@ COMPOSER_SYSTEM = (
     "task ids, no chronology, no 'the specialist found'. The reader receives a "
     "report, not a transcript.\n"
     "- Where a value is unknown or unretrieved, say so plainly. An honest gap is "
-    "worth more than a confident invention."
+    "worth more than a confident invention.\n"
+    "- State uncertainty once, where it belongs, and then write. Hedging every "
+    "sentence does not make a document more honest — it makes the honest parts "
+    "unreadable, and a reader who skims past the fortieth caveat has been warned "
+    "less effectively than one who read a single clear status line."
 )
 
 
@@ -85,6 +89,9 @@ class SectionDraft(StrictModel):
     subsections: list[dict] = []
     evidence_refs: list[str] = []
     status: str | None = None
+    status_note: str | None = None
+    evidence_confidence: str | None = None
+    open_gap_refs: list[str] = []
 
 
 class ClosingMatter(StrictModel):
@@ -263,9 +270,25 @@ def normalise_status(value: str | None) -> tuple[str | None, str | None]:
     return None, text[:400]
 
 
+CONFIDENCE_CODES = ("very_high", "high", "medium", "low", "speculative")
+
+
+def normalise_confidence(value: str | None) -> str | None:
+    if not value:
+        return None
+    lowered = value.strip().lower().replace(" ", "_").replace("-", "_")
+    if lowered in CONFIDENCE_CODES:
+        return lowered
+    for code in CONFIDENCE_CODES:
+        if code in lowered:
+            return code
+    return None
+
+
 def _normalise_node(node: dict) -> dict:
     code, note = normalise_status(node.get("status"))
     node = {**node, "status": code}
+    node["evidence_confidence"] = normalise_confidence(node.get("evidence_confidence"))
     if note and not node.get("status_note"):
         node["status_note"] = note
     node["subsections"] = [_normalise_node(child) for child in (node.get("subsections") or [])]
@@ -282,6 +305,9 @@ def _to_section(draft: SectionDraft) -> ReportSection:
                 "subsections": draft.subsections,
                 "evidence_refs": draft.evidence_refs,
                 "status": draft.status,
+                "status_note": draft.status_note,
+                "evidence_confidence": draft.evidence_confidence,
+                "open_gap_refs": draft.open_gap_refs,
             }
         )
     )
@@ -322,8 +348,20 @@ async def compose_section(
         "- Carry across specifics — mechanisms, attributes, parameters, limits, "
         "methods, rationale — wherever the source states them.\n"
         "- Put register-like material in tables. Every row must be complete.\n"
-        "- Mark provisional or screening-level positions as such, in the text or in a "
-        "status column. Set `status` for the section where one applies.\n"
+        "- State the section's standing ONCE, in the fields, not in the prose: set "
+        "`status`, `evidence_confidence`, and `open_gap_refs` for what this section "
+        "depends on and does not have. The document prints them as a status line "
+        "under the heading.\n"
+        "- Having stated it there, write the technical content plainly. Do not "
+        "qualify every sentence with 'provisional', 'not independently verified', "
+        "'unconfirmed' or 'assumption'. A caveat repeated forty times stops being "
+        "read, and the reader loses the science between the hedges.\n"
+        "- Qualify inline ONLY where a specific number, limit or claim is weaker "
+        "than the section's stated standing — a provisional acceptance criterion "
+        "inside an otherwise established framework. Then say so once, at that "
+        "number, and move on.\n"
+        "- Where a table row's standing differs from its neighbours, that is what a "
+        "status column is for.\n"
         "- Cite evidence ids in `evidence_refs`, and only ids that appear above.\n"
         "- Write prose and tables. No agent names, no task ids, no history.\n"
         "- `tables` entries are objects: {title, columns, rows, note}. Each row is a "
@@ -595,6 +633,13 @@ async def compose_report(
         template_version=template_version,
     )
 
+    gaps = [
+        gap.model_copy(update={"gap_id": gap.gap_id or f"G-{index:02d}"})
+        for index, gap in enumerate(closing.information_gaps, start=1)
+    ]
+    known_gap_ids = {g.gap_id for g in gaps}
+    sections = [_keep_known_gaps(section, known_gap_ids) for section in sections]
+
     report = FinalTechnicalReport(
         metadata=metadata,
         executive_brief=brief_section,
@@ -602,7 +647,7 @@ async def compose_report(
         critical_review=closing.critical_review,
         review_summary=closing.review_summary,
         revision_crosswalk=closing.revision_crosswalk,
-        information_gaps=closing.information_gaps,
+        information_gaps=gaps,
         conclusions=closing.conclusions,
         recommended_actions=closing.recommended_actions,
         references=references,
@@ -643,6 +688,20 @@ async def compose_report(
         usage=total,
         warnings=warnings,
         outline_headings=[s.heading for s in outline.sections],
+    )
+
+
+def _keep_known_gaps(section: ReportSection, known: set[str | None]) -> ReportSection:
+    """Drop gap references that point at nothing.
+
+    A status line citing G-07 when no G-07 exists is worse than one citing
+    nothing: the reader goes looking for a gap that was never recorded.
+    """
+    return section.model_copy(
+        update={
+            "open_gap_refs": [ref for ref in section.open_gap_refs if ref in known],
+            "subsections": [_keep_known_gaps(child, known) for child in section.subsections],
+        }
     )
 
 

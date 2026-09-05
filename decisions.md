@@ -423,3 +423,49 @@ have no client SDS behind them.
 *Consequences:* no Slack app change, nothing to reinstall, and one routing
 mechanism rather than two to keep in step. The manifests keep no slash commands, so
 nobody reinstalls the app expecting them to matter.
+
+
+### D-024 · Specialists could not retrieve anything, because nothing was ingested
+`source_documents: 0 | chunks: 0`. The `project_search` tool worked, the specialists
+called it, and it returned nothing on every run — so they reasoned from general
+principles and labelled the result honestly as assumptions. The report that came
+back was dominated by "evidence unavailable", and the product-specific science that
+made an earlier run useful was simply not available to them.
+
+*Decision:* `app/ingest/` plus `scripts/ingest_documents.py`. PDF, DOCX, Markdown,
+text, CSV, JSON and HTML are extracted and chunked with a locator on every chunk —
+a page number, a heading, a table number — because an excerpt a reader cannot find
+in the original is not provenance.
+
+Re-ingesting a file supersedes the old version rather than adding a second copy:
+two versions of one guidance is how a specialist ends up citing the withdrawn one.
+`--keep-old-versions` makes retaining both a deliberate choice.
+
+*One defect found by its own tests:* short blocks were being dropped as too small
+to be useful, which discarded exactly the lines that matter most — "Reference NDA:
+207997", an assay result, a revision date. A short chunk is kept; the size floor
+now governs only where a long block is split.
+
+
+### D-025 · Uncertainty is stated once, structurally, not in every sentence
+The composed report was accurate and hard to read: "provisional", "not
+independently verified", "screening-level" and "unresolved" recurred so often that
+the science between them was lost. Repeating a caveat does not make a document more
+honest — a reader who skims past the fortieth has been warned less effectively than
+one who read a single clear line.
+
+*Decision:* a section carries its standing as structured fields — `status`,
+`evidence_confidence`, `open_gap_refs` — and the renderer prints them once under
+the heading:
+
+    Section status: PROVISIONAL · Evidence confidence: Medium · Unresolved gaps: G-02, G-07
+
+Gaps get stable ids (G-01, G-02...) assigned in code, so a section points at one
+instead of restating it, and a reference to a gap that does not exist is dropped
+rather than sending the reader looking for it.
+
+The composer is told to state the standing there and then write plainly, qualifying
+inline only where a specific number is weaker than the section around it. The
+safeguards are unchanged — the gate still fails a report whose evidence does not
+resolve, and a provisional target is still labelled provisional. What changed is
+that it is said where a reader will read it.

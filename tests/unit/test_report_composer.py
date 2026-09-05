@@ -351,9 +351,16 @@ async def test_the_composer_route_is_configurable(monkeypatch):
         get_settings.cache_clear()
         assert composer_route() is AgentRoute.SPECIALIST
 
-        # The executive agent is the default: the switch is a deployment choice.
-        monkeypatch.delenv("REPORT_COMPOSER_ROUTE")
+        monkeypatch.setenv("REPORT_COMPOSER_ROUTE", "executive")
         get_settings.cache_clear()
         assert composer_route() is AgentRoute.EXECUTIVE
     finally:
         get_settings.cache_clear()
+
+
+def test_the_shipped_default_route_is_the_executive_agent():
+    """Read from the code, not from this deployment's .env, which overrides it."""
+    from app.config import Settings
+
+    defaults = Settings(app_env="development", openclaw_gateway_token="t", _env_file=None)
+    assert defaults.report_composer_route == "executive"

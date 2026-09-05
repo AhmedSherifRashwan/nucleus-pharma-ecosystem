@@ -29,7 +29,9 @@ OPENCLAW_HOME = Path("~/.openclaw").expanduser()
 TARGETS: dict[str, tuple[Path, tuple[str, ...], tuple[str, ...]]] = {
     "main": (
         OPENCLAW_HOME / "workspace" / "skills",
-        ("pharma-ecosystem", "neucleus-approvals"),
+        # `commands` holds one generated skill per specialist, so /qtpp and the
+        # rest reach the Slack-facing agent as slash commands.
+        ("pharma-ecosystem", "neucleus-approvals", "commands"),
         (),
     ),
     "pharma-specialist": (
@@ -41,13 +43,23 @@ TARGETS: dict[str, tuple[Path, tuple[str, ...], tuple[str, ...]]] = {
 
 
 def sources_for(patterns: tuple[str, ...], excluded: tuple[str, ...] = ()) -> list[Path]:
+    """Skill directories matching these patterns.
+
+    A matched directory holding no SKILL.md of its own is a grouping folder, and
+    its children are the skills - that is how the per-specialist commands are laid
+    out, so they stay together in the repository without becoming one skill.
+    """
     found: dict[str, Path] = {}
     for pattern in patterns:
         for path in sorted(SOURCE.glob(pattern)):
-            if path.name in excluded:
+            if path.name in excluded or not path.is_dir():
                 continue
             if (path / "SKILL.md").is_file():
                 found[path.name] = path
+                continue
+            for child in sorted(path.iterdir()):
+                if child.is_dir() and (child / "SKILL.md").is_file() and child.name not in excluded:
+                    found[child.name] = child
     return list(found.values())
 
 

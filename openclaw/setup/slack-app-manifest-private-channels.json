@@ -14,99 +14,7 @@
       "home_tab_enabled": false,
       "messages_tab_enabled": false,
       "messages_tab_read_only_enabled": true
-    },
-    "slash_commands": [
-      {
-        "command": "/neucleus",
-        "description": "Start a Neucleus run (add 'all 16 agents' for the full ecosystem)",
-        "usage_hint": "[your request]",
-        "should_escape": false
-      },
-      {
-        "command": "/portfolio-strategy",
-        "description": "Ask the Portfolio Strategy Agent a single question",
-        "usage_hint": "[the task]",
-        "should_escape": false
-      },
-      {
-        "command": "/regulatory-intelligence",
-        "description": "Ask the Regulatory Intelligence Expert a single question",
-        "usage_hint": "[the task]",
-        "should_escape": false
-      },
-      {
-        "command": "/qtpp",
-        "description": "Ask the QTPP Expert / Director a single question",
-        "usage_hint": "[the task]",
-        "should_escape": false
-      },
-      {
-        "command": "/qbd",
-        "description": "Ask the Quality by Design (QbD) Expert a single question",
-        "usage_hint": "[the task]",
-        "should_escape": false
-      },
-      {
-        "command": "/product-development",
-        "description": "Ask the Product Development Scientist a single question",
-        "usage_hint": "[the task]",
-        "should_escape": false
-      },
-      {
-        "command": "/excipient-selection",
-        "description": "Ask the Excipient Selection Expert a single question",
-        "usage_hint": "[the task]",
-        "should_escape": false
-      },
-      {
-        "command": "/shell-formulation",
-        "description": "Ask the Softgel Shell Formulation Expert a single question",
-        "usage_hint": "[the task]",
-        "should_escape": false
-      },
-      {
-        "command": "/fill-formulation",
-        "description": "Ask the Fill Formulation Expert a single question",
-        "usage_hint": "[the task]",
-        "should_escape": false
-      },
-      {
-        "command": "/analytical-development",
-        "description": "Ask the Analytical Development Expert a single question",
-        "usage_hint": "[the task]",
-        "should_escape": false
-      },
-      {
-        "command": "/stability",
-        "description": "Ask the Stability Studies Expert a single question",
-        "usage_hint": "[the task]",
-        "should_escape": false
-      },
-      {
-        "command": "/process-development",
-        "description": "Ask the Process Development Expert a single question",
-        "usage_hint": "[the task]",
-        "should_escape": false
-      },
-      {
-        "command": "/validation",
-        "description": "Ask the Validation Expert a single question",
-        "usage_hint": "[the task]",
-        "should_escape": false
-      },
-      {
-        "command": "/quality-control",
-        "description": "Ask the Quality Control Expert a single question",
-        "usage_hint": "[the task]",
-        "should_escape": false
-      },
-      {
-        "command": "/quality-assurance",
-        "description": "Ask the Quality Assurance Expert a single question",
-        "usage_hint": "[the task]",
-        "should_escape": false
-      }
-    ]
+    }
   },
   "oauth_config": {
     "scopes": {
@@ -119,8 +27,7 @@
         "users:read",
         "reactions:write",
         "groups:history",
-        "groups:read",
-        "commands"
+        "groups:read"
       ]
     }
   },

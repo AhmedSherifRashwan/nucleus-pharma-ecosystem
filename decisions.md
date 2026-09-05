@@ -401,3 +401,25 @@ specialist. Stages already completed stop being counted.
 The range widens when the estimate is a guess and narrows once it is measured, so
 its width carries information. An estimate that keeps expiring reads as a stall and
 destroys trust in the number, so the default errs long.
+
+
+### D-023 · Specialist commands are skills, not Slack app commands
+`/qtpp <task>` could be registered as a Slack slash command in the app manifest, or
+served by OpenClaw's own command path. The manifest route needs 15 command entries,
+the `commands` scope, and a reinstall of the Slack app — and the Slack app is where
+this deployment has lost the most time to token and scope problems.
+
+*Decision:* one generated skill per enabled specialist, installed on the
+Slack-facing agent, with `channels.slack.commands.nativeSkills: true`. OpenClaw
+exposes a user-invocable skill as a slash command over the connection it already
+holds. `/skill qtpp <task>` works as the documented fallback whether or not native
+registration is on.
+
+The skills are generated from the registry by `scripts/generate_command_skills.py`
+and drift-tested, so a command can never point at the wrong specialist or outlive
+the profile behind it. A provisional profile gets no command, because A15 and A16
+have no client SDS behind them.
+
+*Consequences:* no Slack app change, nothing to reinstall, and one routing
+mechanism rather than two to keep in step. The manifests keep no slash commands, so
+nobody reinstalls the app expecting them to matter.

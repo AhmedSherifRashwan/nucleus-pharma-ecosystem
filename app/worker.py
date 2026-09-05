@@ -160,6 +160,8 @@ class Worker:
                 "slack_user_id": run.slack_user_id,
                 "user_request": run.user_request,
                 "requested_output_format": run.requested_output_format,
+                "run_mode": run.mode or "standard",
+                "requested_agents": run.requested_agents or [],
                 "budgets": run.budgets or {},
                 "challenge_round": run.challenge_round or 0,
             }

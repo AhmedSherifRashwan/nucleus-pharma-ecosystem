@@ -26,6 +26,46 @@ control, or quality assurance.
 Do **not** use it for small talk, questions about Neucleus itself, or requests
 outside pharmaceutical development.
 
+## Three ways a request arrives
+
+**Standard** — the ordinary case. The planner picks the specialists the question
+needs, within the run budget. Pass the request through and let it decide.
+
+**Whole ecosystem** — the user says something like "use all 16 agents", "use the
+whole ecosystem" or "every specialist". Pass the request through verbatim; the
+enqueue script reads that instruction itself and sets the mode. Tell the user it
+will take considerably longer than a normal run.
+
+**One named specialist** — the message starts with a slash command naming an agent,
+either by id (`/A07`) or by name (`/shell-formulation`), followed by the task:
+
+> `/shell-formulation assess cross-linking risk for a PEG 400 fill`
+
+Pass the whole message through verbatim, including the leading slash command. The
+script parses it, and skips planning entirely — that specialist does the task alone.
+
+The addressable specialists:
+
+| Command | Specialist |
+|---|---|
+| `/portfolio-strategy` or `/A01` | Portfolio Strategy |
+| `/regulatory-intelligence` or `/A02` | Regulatory Intelligence |
+| `/qtpp` or `/A03` | QTPP |
+| `/qbd` or `/A04` | Quality by Design |
+| `/product-development` or `/A05` | Product Development |
+| `/excipient-selection` or `/A06` | Excipient Selection |
+| `/shell-formulation` or `/A07` | Softgel Shell Formulation |
+| `/fill-formulation` or `/A08` | Fill Formulation |
+| `/analytical-development` or `/A09` | Analytical Development |
+| `/stability` or `/A10` | Stability Studies |
+| `/process-development` or `/A11` | Process Development |
+| `/validation` or `/A12` | Validation |
+| `/quality-control` or `/A13` | Quality Control |
+| `/quality-assurance` or `/A14` | Quality Assurance |
+
+If the user names a specialist that is not in this table, say so and list the
+nearest ones rather than picking one for them.
+
 ## How to launch
 
 Run the enqueue script with the request and its Slack context:
@@ -46,8 +86,12 @@ planned.
 `--event-id` is the deduplication key. Slack retries events; without it the same
 message can start two runs.
 
-The script prints a JSON object with `run_ref` and `status`. Report the `run_ref`
-back to the user and stop.
+The script prints a JSON object with `run_ref`, `status`, `mode` and `agent`. Report
+the `run_ref` back to the user and stop.
+
+`mode` tells you what was understood — `standard`, `full` or `direct`. Say which one
+in your acknowledgement, so a user who typed "use all 16 agents" can see that it was
+read, and a user who did not can see that it was not.
 
 ## What to tell the user
 
@@ -56,6 +100,16 @@ progress arrives in this thread on its own.
 
 > Run RUN-2026-0042 started. I am planning the specialist workstreams and will
 > post progress here.
+
+For a whole-ecosystem run, say so and warn about the time:
+
+> Run RUN-2026-0042 started across the full ecosystem — every specialist gets a
+> workstream. This takes substantially longer than a normal run; progress will
+> appear here.
+
+For a direct request, name the specialist:
+
+> Run RUN-2026-0042 started. Sent to the Softgel Shell Formulation Expert.
 
 If the script reports `deduplicated: true`, the request was already running —
 give the existing `run_ref` rather than starting another.

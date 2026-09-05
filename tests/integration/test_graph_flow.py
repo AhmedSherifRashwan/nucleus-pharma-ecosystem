@@ -428,6 +428,51 @@ async def test_a_failed_composition_still_delivers_the_brief(monkeypatch):
     assert final["status"] == "review_required"
 
 
+async def test_a_direct_request_skips_planning_entirely(monkeypatch):
+    """The user chose the specialist; there is nothing left to plan."""
+    run_id, run_ref = await make_run()
+    async with session_scope() as s:
+        from sqlalchemy import update
+
+        await s.execute(
+            update(Run).where(Run.id == run_id).values(mode="direct", requested_agents=["A07"])
+        )
+
+    gw = FakeGateway(four_task_plan(), executive_brief=brief(decisions_required_from_user=[]))
+    wire(monkeypatch, gw)
+
+    app = compile_graph(InMemorySaver())
+    state = {
+        **initial(run_id, run_ref, "Assess cross-linking risk for a PEG 400 fill."),
+        "run_mode": "direct",
+        "requested_agents": ["A07"],
+    }
+    final = await app.ainvoke(state, config=config(run_id))
+
+    # No plan was requested from the executive route.
+    assert "Plan" not in gw.schemas
+    plan = final["plan"]
+    assert [t.agent_id for t in plan.tasks] == ["A07"]
+    assert final["status"] in ("complete", "review_required")
+
+
+async def test_an_unknown_specialist_in_a_direct_request_fails_closed(monkeypatch):
+    run_id, run_ref = await make_run()
+    gw = FakeGateway(four_task_plan())
+    wire(monkeypatch, gw)
+
+    app = compile_graph(InMemorySaver())
+    state = {
+        **initial(run_id, run_ref, "Do something."),
+        "run_mode": "direct",
+        "requested_agents": ["A99"],
+    }
+    final = await app.ainvoke(state, config=config(run_id))
+
+    assert final["status"] == "failed"
+    assert "A99" in (final.get("error_state") or "")
+
+
 # -- challenge and follow-ups (s9.2) -----------------------------------------
 
 

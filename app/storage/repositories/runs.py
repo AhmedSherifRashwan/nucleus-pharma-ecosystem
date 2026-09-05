@@ -43,6 +43,8 @@ class RunRepository:
         requested_output_format: str = "brief",
         budgets: dict[str, Any] | None = None,
         run_ref: str | None = None,
+        mode: str = "standard",
+        requested_agents: list[str] | None = None,
     ) -> Run:
         run = Run(
             run_ref=run_ref or await self.next_run_ref(),
@@ -54,6 +56,8 @@ class RunRepository:
             idempotency_key=idempotency_key,
             requested_output_format=requested_output_format,
             budgets=budgets or {},
+            mode=mode,
+            requested_agents=requested_agents or [],
             status="queued",
             current_stage="intake",
         )

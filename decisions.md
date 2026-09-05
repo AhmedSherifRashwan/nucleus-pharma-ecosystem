@@ -360,3 +360,44 @@ status beside the citation.
 *Consequence:* a reader can tell a verified primary source from a plausible-looking
 citation nobody opened. The gate reports imprecise references without blocking —
 the honest label is the deliverable, not the absence of the reference.
+
+
+### D-021 · Three run modes, read from the user's own words
+A request now engages the ecosystem in one of three ways.
+
+`standard` — the planner selects the specialists the question needs, within the
+run budget (raised to 8 on this deployment). The default.
+
+`full` — every enabled profile gets a workstream. Triggered only by an explicit
+instruction ("use all 16 agents", "the whole ecosystem", "every specialist").
+Inferring it from a broad question would spend an hour of someone's afternoon on
+a guess, so detection is literal and the planner is told plainly not to narrow the
+team.
+
+`direct` — `/A07` or `/shell-formulation` followed by a task sends that one
+specialist to work. The plan is built in code rather than asked of the planner:
+there is nothing left to decide, and asking anyway risks the planner answering
+with a different team than the user named. The plan gate is skipped for the same
+reason — it would ask the user to approve what they just requested. The AMBER/RED
+decision gate after synthesis is untouched.
+
+*Consequences:* the routing prefix never reaches the specialist, and an unknown
+command is treated as an ordinary request rather than guessed at. Slash commands
+are registered in the Slack manifest, one per enabled specialist plus `/neucleus`;
+the same words typed in a mention work without them.
+
+
+### D-022 · The time estimate is measured, not assumed
+The first estimator used fixed constants and told the user "8-10 minutes" on a run
+that took an hour. Constants cannot know that this deployment's specialists take
+four minutes on report-length work.
+
+*Decision:* `app/orchestration/timing.py` reads `duration_ms` back from the
+specialist results — the run's own turns first, this deployment's recent history
+next, a generous default only if nothing has ever been measured. A parallel group
+costs about one turn plus a margin for its slowest member, not one turn per
+specialist. Stages already completed stop being counted.
+
+The range widens when the estimate is a guess and narrows once it is measured, so
+its width carries information. An estimate that keeps expiring reads as a stall and
+destroys trust in the number, so the default errs long.

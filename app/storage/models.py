@@ -95,6 +95,9 @@ class Run(Base, TimestampMixin):
 
     user_request: Mapped[str] = mapped_column(Text, nullable=False)
     requested_output_format: Mapped[str] = mapped_column(String(32), default="brief")
+    # standard | full | direct (s9.1). How much of the ecosystem the user asked for.
+    mode: Mapped[str] = mapped_column(String(16), default="standard", nullable=False)
+    requested_agents: Mapped[list[str]] = mapped_column(JSONType, default=list)
 
     # queued | planning | awaiting_approval | running | challenging | synthesizing
     # | quality_gate | awaiting_decision | reporting | complete | review_required

@@ -166,20 +166,27 @@ def status_line(
     elapsed_seconds: int,
     *,
     remaining_seconds: int | None = None,
+    estimate_text: str | None = None,
 ) -> str:
-    """The bar, the counter, the clock and the estimate, on one line."""
+    """The bar, the counter, the clock and the estimate, on one line.
+
+    `estimate_text` comes from measured durations where the caller has them; the
+    constant-based fallback is only for callers that cannot reach the database.
+    """
     fraction = overall_fraction(stage, tasks)
     bar = progress_bar(fraction)
     done = sum(1 for t in tasks if t.status not in ("pending", "ready", "running"))
     counter = f"{done}/{len(tasks)} specialists" if tasks else STAGE_LABELS.get(stage, stage)
-    remaining = (
-        remaining_seconds
-        if remaining_seconds is not None
-        else estimate_remaining_seconds(tasks, stage)
-    )
+    if estimate_text is None:
+        remaining = (
+            remaining_seconds
+            if remaining_seconds is not None
+            else estimate_remaining_seconds(tasks, stage)
+        )
+        estimate_text = estimate_label(remaining)
     return (
         f"`{bar}`\n{counter} · elapsed {format_duration(elapsed_seconds)} · "
-        f"est. {estimate_label(remaining)} remaining _(approximate)_"
+        f"est. {estimate_text} remaining _(approximate)_"
     )
 
 
@@ -193,6 +200,7 @@ def event(
     detail: str | None = None,
     bullets: list[str] | None = None,
     remaining_seconds: int | None = None,
+    estimate_text: str | None = None,
 ) -> list[dict[str, Any]]:
     """One progress message: what just happened, and where the run stands."""
     tasks = tasks or []
@@ -210,7 +218,11 @@ def event(
                 {
                     "type": "mrkdwn",
                     "text": status_line(
-                        stage, tasks, elapsed_seconds, remaining_seconds=remaining_seconds
+                        stage,
+                        tasks,
+                        elapsed_seconds,
+                        remaining_seconds=remaining_seconds,
+                        estimate_text=estimate_text,
                     ),
                 }
             ],

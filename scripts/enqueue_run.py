@@ -15,8 +15,10 @@ import asyncio
 import json
 import sys
 
+from app.agents.registry import get_registry
 from app.audit.logger import configure_logging, get_logger
 from app.config import get_settings
+from app.orchestration.modes import detect_mode
 from app.reports.naming import subject_from_request
 from app.storage.db import dispose_engine, session_scope
 from app.storage.repositories import (
@@ -61,12 +63,28 @@ async def enqueue(
     user: str | None,
     event_id: str | None,
     output_format: str = "brief",
+    mode: str | None = None,
+    agent: str | None = None,
 ) -> dict:
     request = (request or "").strip()
-    if len(request) < MIN_REQUEST_CHARS:
-        raise ValueError("request is too short to plan against")
     if len(request) > MAX_REQUEST_CHARS:
         raise ValueError(f"request exceeds {MAX_REQUEST_CHARS} characters")
+
+    # s9.1: how much of the ecosystem the user asked for, read from their words.
+    registry = get_registry()
+    decision = detect_mode(
+        request,
+        known_ids={p.id for p in registry.enabled_profiles()},
+        slug_to_id={p.slug: p.id for p in registry.enabled_profiles()},
+        explicit_mode=mode,  # type: ignore[arg-type]
+        explicit_agent=agent,
+    )
+    # The routing prefix is not the task, so length is judged on what remains.
+    if decision.is_direct and len(decision.request) < MIN_REQUEST_CHARS:
+        raise ValueError(f"a direct request to {decision.agent_id} needs a task after the command")
+    request = decision.request or request
+    if len(request) < MIN_REQUEST_CHARS:
+        raise ValueError("request is too short to plan against")
 
     # s31.2: Slack retries events. Without a key, one message becomes two runs.
     idempotency_key = f"slack:{event_id}" if event_id else None
@@ -102,6 +120,8 @@ async def enqueue(
             idempotency_key=idempotency_key,
             requested_output_format=output_format,
             budgets=default_budgets(),
+            mode=decision.mode,
+            requested_agents=[decision.agent_id] if decision.agent_id else [],
         )
         await JobRepository(session).enqueue(
             run.id,
@@ -115,16 +135,25 @@ async def enqueue(
             actor_id=user,
             run_id=run.id,
             project_id=project_id,
-            metadata={"channel": channel, "thread": thread, "chars": len(request)},
+            metadata={
+                "channel": channel,
+                "thread": thread,
+                "chars": len(request),
+                "mode": decision.mode,
+                "agents": [decision.agent_id] if decision.agent_id else [],
+                "mode_matched_on": decision.matched_on,
+            },
         )
         result = {
             "run_id": str(run.id),
             "run_ref": run.run_ref,
             "status": run.status,
             "deduplicated": False,
+            "mode": decision.mode,
+            "agent": decision.agent_id,
         }
 
-    log.info("run_enqueued", run_ref=result["run_ref"], channel=channel)
+    log.info("run_enqueued", run_ref=result["run_ref"], channel=channel, mode=decision.mode)
     return result
 
 
@@ -138,6 +167,12 @@ async def main() -> int:
     parser.add_argument(
         "--output-format", default="brief", choices=["report", "brief", "analysis", "comparison"]
     )
+    parser.add_argument(
+        "--mode",
+        choices=["standard", "full", "direct"],
+        help="override the mode read from the request",
+    )
+    parser.add_argument("--agent", help="agent id for a direct request, e.g. A07")
     args = parser.parse_args()
 
     settings = get_settings()
@@ -151,6 +186,8 @@ async def main() -> int:
             user=args.user,
             event_id=args.event_id,
             output_format=args.output_format,
+            mode=args.mode,
+            agent=args.agent,
         )
     except Exception as exc:
         # The skill must report a failure, never fabricate a run reference.

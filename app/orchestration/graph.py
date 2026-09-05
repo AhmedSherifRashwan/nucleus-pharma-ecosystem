@@ -27,6 +27,8 @@ from app.audit.logger import bind_run_context, get_logger
 from app.config import get_settings
 from app.orchestration.challenge import challenge_results
 from app.orchestration.conflict import detect_conflict_signals, needs_challenge
+from app.orchestration.direct import build_direct_plan
+from app.orchestration.plan_validator import validate_plan
 from app.orchestration.planner import create_plan
 from app.orchestration.specialist_runner import (
     SpecialistRunner,
@@ -35,6 +37,7 @@ from app.orchestration.specialist_runner import (
 )
 from app.orchestration.state import RunState
 from app.orchestration.synthesis import run_quality_gate, synthesize
+from app.orchestration.timing import format_range, measure_durations, remaining_seconds
 from app.reports.service import get_report_service
 from app.schemas.planning import RunBudget
 from app.schemas.specialist import SpecialistResult
@@ -97,6 +100,45 @@ async def _task_progress(state: RunState) -> list[slack_progress.TaskProgress]:
     ]
 
 
+async def _estimate_remaining(
+    state: RunState, stage: str, tasks: list[slack_progress.TaskProgress]
+) -> str | None:
+    """Time remaining, measured rather than assumed (s17.1).
+
+    Reads what specialist turns have actually cost — this run's first, then this
+    deployment's recent runs. Never raises: an estimate is a courtesy.
+    """
+    try:
+        outstanding = {
+            t.execution_group for t in tasks if t.status in ("pending", "ready", "running")
+        }
+        widest = max(
+            (
+                sum(
+                    1
+                    for t in tasks
+                    if t.execution_group == g and t.status in ("pending", "ready", "running")
+                )
+                for g in outstanding
+            ),
+            default=1,
+        )
+        async with session_scope() as session:
+            model = await measure_durations(session, _run_uuid(state))
+        seconds = remaining_seconds(
+            model,
+            stage=stage,
+            outstanding_groups=len(outstanding),
+            widest_outstanding_group=widest,
+            challenge_done=bool(state.get("challenge")),
+            synthesis_done=bool(state.get("executive_brief")),
+            report_done=bool(state.get("report_paths")),
+        )
+        return format_range(seconds, measured=model.is_measured)
+    except Exception:
+        return None
+
+
 async def _progress(
     state: RunState,
     stage: str,
@@ -121,6 +163,7 @@ async def _progress(
     elapsed = int(time.time() - (state.get("started_epoch") or time.time()))
     run_ref = state.get("run_ref") or "Run"
     label = headline or slack_progress.STAGE_LABELS.get(stage, stage.replace("_", " "))
+    estimate = await _estimate_remaining(state, stage, tasks)
 
     blocks = slack_progress.event(
         run_ref,
@@ -130,6 +173,7 @@ async def _progress(
         elapsed_seconds=elapsed,
         detail=detail,
         bullets=bullets,
+        estimate_text=estimate,
     )
     return await get_notifier().post(
         channel=channel,
@@ -237,13 +281,65 @@ async def load_project_context(state: RunState) -> dict[str, Any]:
 
 
 async def plan_node(state: RunState) -> dict[str, Any]:
+    """Build the task graph for the run (s9.1).
+
+    A direct request names its own specialist, so the plan is built in code: there
+    is nothing for the planner to decide, and asking it to decide anyway risks it
+    answering with a different team than the user asked for.
+    """
     run_id = _run_uuid(state)
+    mode = state.get("run_mode") or "standard"
+    registry = get_registry()
+
+    if mode == "direct":
+        requested = state.get("requested_agents") or []
+        agent_id = requested[0] if requested else None
+        if not agent_id or not registry.exists(agent_id):
+            return {
+                "current_stage": "plan_failed",
+                "status": "failed",
+                "error_state": f"Unknown specialist for a direct request: {agent_id!r}",
+                "plan_errors": [f"unknown agent {agent_id!r}"],
+            }
+        plan = build_direct_plan(
+            agent_id,
+            state["user_request"],
+            registry=registry,
+            max_steps=_budget(state).max_specialist_steps,
+        )
+        validation = validate_plan(
+            plan, registry, _budget(state), user_request=state["user_request"]
+        )
+        async with session_scope() as s:
+            await AuditRepository(s).record(
+                event_type=EventType.PLAN_CREATED,
+                actor_type="system",
+                run_id=run_id,
+                metadata={
+                    "mode": "direct",
+                    "agents": [agent_id],
+                    "valid": validation.is_valid,
+                    "errors": validation.errors,
+                },
+            )
+        log.info("direct_plan", agent_id=agent_id, valid=validation.is_valid)
+        return {
+            "current_stage": "plan",
+            "plan": validation.plan,
+            "plan_errors": validation.errors,
+            "plan_warnings": validation.warnings,
+            "execution_groups": validation.execution_groups,
+            "selected_agents": [agent_id],
+            "approval_required": validation.plan.plan_approval_required,
+        }
+
     outcome = await create_plan(
         state["user_request"],
         budget=_budget(state),
         project_context=state.get("project_context"),
         prior_decisions=state.get("prior_decisions"),
         idempotency_key=f"{state['run_id']}:plan",
+        full_ecosystem=mode == "full",
     )
 
     async with session_scope() as s:
@@ -259,6 +355,7 @@ async def plan_node(state: RunState) -> dict[str, Any]:
             gateway_route=outcome.route.agent_id,
             model_id=outcome.route.model,
             metadata={
+                "mode": mode,
                 "tasks": len(outcome.plan.tasks),
                 "agents": outcome.plan.selected_agents,
                 "valid": outcome.is_valid,

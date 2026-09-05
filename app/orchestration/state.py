@@ -47,6 +47,9 @@ class RunState(TypedDict, total=False):
     # Request
     user_request: str
     requested_output_format: str
+    # s9.1: standard | full | direct, and the specialist a direct request names.
+    run_mode: str
+    requested_agents: list[str]
     project_context: str | None
     prior_decisions: list[str]
 

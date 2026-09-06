@@ -14,6 +14,7 @@ import argparse
 import asyncio
 import json
 import sys
+import uuid
 
 from app.agents.registry import get_registry
 from app.audit.logger import configure_logging, get_logger
@@ -65,6 +66,8 @@ async def enqueue(
     output_format: str = "brief",
     mode: str | None = None,
     agent: str | None = None,
+    project: str | None = None,
+    project_id: str | None = None,
 ) -> dict:
     request = (request or "").strip()
     if len(request) > MAX_REQUEST_CHARS:
@@ -102,18 +105,33 @@ async def enqueue(
                     "deduplicated": True,
                 }
 
-        project_id = None
-        if channel and thread:
-            project, _ = await ProjectRepository(session).get_or_create_for_thread(
+        # An explicit project wins over the thread's own. Documents are ingested
+        # against a project, and a fresh Slack thread would otherwise start a
+        # fresh project with nothing in it to retrieve.
+        projects = ProjectRepository(session)
+        bound = None
+        if project_id:
+            bound = await projects.get(uuid.UUID(project_id))
+            if bound is None:
+                raise ValueError(f"no project {project_id}")
+        elif project:
+            bound = await projects.get_by_name(project)
+            if bound is None:
+                raise ValueError(
+                    f"no project named {project!r}. Ingest documents against it first, "
+                    "or omit --project to use this thread's own project."
+                )
+        elif channel and thread:
+            bound, _ = await projects.get_or_create_for_thread(
                 slack_channel_id=channel,
                 thread_ts=thread,
                 name=project_name_for(channel, thread, request),
             )
-            project_id = project.id
+        run_project_id = bound.id if bound else None
 
         run = await runs.create(
             user_request=request,
-            project_id=project_id,
+            project_id=run_project_id,
             slack_channel_id=channel,
             slack_thread_ts=thread,
             slack_user_id=user,
@@ -134,7 +152,7 @@ async def enqueue(
             actor_type="user",
             actor_id=user,
             run_id=run.id,
-            project_id=project_id,
+            project_id=run_project_id,
             metadata={
                 "channel": channel,
                 "thread": thread,
@@ -142,6 +160,7 @@ async def enqueue(
                 "mode": decision.mode,
                 "agents": [decision.agent_id] if decision.agent_id else [],
                 "mode_matched_on": decision.matched_on,
+                "project": bound.name if bound else None,
             },
         )
         result = {
@@ -151,6 +170,7 @@ async def enqueue(
             "deduplicated": False,
             "mode": decision.mode,
             "agent": decision.agent_id,
+            "project": bound.name if bound else None,
         }
 
     log.info("run_enqueued", run_ref=result["run_ref"], channel=channel, mode=decision.mode)
@@ -173,6 +193,12 @@ async def main() -> int:
         help="override the mode read from the request",
     )
     parser.add_argument("--agent", help="agent id for a direct request, e.g. A07")
+    parser.add_argument(
+        "--project",
+        help="bind the run to an existing project by name, so its ingested "
+        "documents are searchable. Defaults to this Slack thread's own project.",
+    )
+    parser.add_argument("--project-id", help="bind the run to an existing project by id")
     args = parser.parse_args()
 
     settings = get_settings()
@@ -188,6 +214,8 @@ async def main() -> int:
             output_format=args.output_format,
             mode=args.mode,
             agent=args.agent,
+            project=args.project,
+            project_id=args.project_id,
         )
     except Exception as exc:
         # The skill must report a failure, never fabricate a run reference.

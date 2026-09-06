@@ -34,6 +34,11 @@ class ProjectRepository:
         await self.session.flush()
         return project
 
+    async def get_by_name(self, name: str) -> Project | None:
+        """Find a project by the name it was ingested or created under."""
+        stmt = select(Project).where(Project.name == name)
+        return (await self.session.execute(stmt)).scalars().first()
+
     async def get(self, project_id: uuid.UUID) -> Project | None:
         return await self.session.get(Project, project_id)
 

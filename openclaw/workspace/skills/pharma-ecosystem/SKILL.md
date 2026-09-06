@@ -86,6 +86,20 @@ planned.
 `--event-id` is the deduplication key. Slack retries events; without it the same
 message can start two runs.
 
+**Working from a document set.** Specialists can only search documents that were
+ingested against a project. A new Slack thread starts a new project with nothing in
+it, so when the user names one — "use the Midostaurin project", "against the
+Candidate X documents" — pass it through:
+
+```bash
+  --project "Midostaurin Generic Programme"
+```
+
+If the script says there is no project by that name, tell the user exactly that and
+list nothing you have not verified. Do not silently drop the flag: a run against the
+wrong project searches an empty document set and the specialists will report that
+they found nothing.
+
 The script prints a JSON object with `run_ref`, `status`, `mode` and `agent`. Report
 the `run_ref` back to the user and stop.
 

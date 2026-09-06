@@ -61,3 +61,34 @@ async def test_the_project_is_named_from_the_subject_not_the_thread():
         project = await ProjectRepository(s).get(run.project_id)
     assert not project.name.startswith("Slack ")
     assert "dissolution" in project.name.lower()
+
+
+# -- binding a run to an ingested project ------------------------------------
+
+
+async def test_a_named_project_binds_the_run_to_its_documents():
+    """A fresh thread would otherwise start a project with nothing to retrieve."""
+    from app.storage.models import Project
+
+    async with session_scope() as s:
+        project = Project(name="Midostaurin Programme Test")
+        s.add(project)
+        await s.flush()
+        project_id = project.id
+
+    result, run = await run_for(
+        "Assess the dissolution strategy.", project="Midostaurin Programme Test"
+    )
+    assert run.project_id == project_id
+    assert result["project"] == "Midostaurin Programme Test"
+
+
+async def test_an_unknown_project_is_refused_rather_than_created():
+    """Silently creating it would give the run an empty document set."""
+    with pytest.raises(ValueError, match="no project"):
+        await run_for("Assess the dissolution strategy.", project="Does Not Exist")
+
+
+async def test_without_a_project_the_thread_still_gets_its_own():
+    _, run = await run_for("Assess the dissolution slow-down at 6 months.")
+    assert run.project_id is not None

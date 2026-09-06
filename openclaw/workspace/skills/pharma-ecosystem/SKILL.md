@@ -107,6 +107,34 @@ the `run_ref` back to the user and stop.
 in your acknowledgement, so a user who typed "use all 16 agents" can see that it was
 read, and a user who did not can see that it was not.
 
+## When there is no Slack thread
+
+In the Control UI, a terminal, or anywhere without a Slack conversation, omit
+`--channel`, `--thread`, `--user` and `--event-id`. The run works exactly the same
+— but nothing posts itself back to you, because there is no thread to post to. You
+report it instead.
+
+After launching, poll:
+
+```bash
+cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/run_status.py \
+  --run-ref RUN-2026-0042 --wait 600
+```
+
+`--wait` returns as soon as the run finishes **or** needs a decision from the user,
+whichever comes first, and at the latest after the seconds you give it. Report what
+comes back — the stage, which specialists have returned, and anything blocking —
+then poll again. A run takes tens of minutes, so tell the user that and keep going
+rather than waiting in silence.
+
+When the status shows `awaiting_decision`, put the question to the user in your own
+words, wait for their answer, and only then run the command in its `how_to_answer`
+field. Never answer a gate on the user's behalf.
+
+When it shows `finished`, report the outcome and give the paths under `reports`.
+Those are files on this machine; say where they are rather than trying to attach
+them.
+
 ## What to tell the user
 
 Acknowledge immediately and briefly. A run takes minutes, not seconds, and

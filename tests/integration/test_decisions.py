@@ -124,7 +124,7 @@ async def test_a_missing_approval_is_refused():
 
 async def test_a_decision_needs_a_named_person(approvers):
     _, _, approval_id = await _gate()
-    with pytest.raises(DecisionRefused, match="no Slack user id"):
+    with pytest.raises(DecisionRefused, match="no user id"):
         await record(approval_id=approval_id, action="approve_plan", user=None)
 
 
@@ -155,3 +155,42 @@ async def test_a_decided_gate_can_be_raised_again(approvers):
 
     assert str(fresh.id) != approval_id
     assert is_new is True
+
+
+# -- runs started outside Slack ----------------------------------------------
+
+
+async def _ownerless_gate() -> tuple[uuid.UUID, str]:
+    """A run from the Control UI or a terminal has no Slack owner."""
+    async with session_scope() as s:
+        run = await RunRepository(s).create(user_request="Assess the shell change.")
+        await RunRepository(s).set_stage(run.id, "awaiting_approval", status="awaiting_approval")
+        approval, _ = await GovernanceRepository(s).request_approval(
+            run_id=run.id, gate="plan", decision_class="amber"
+        )
+        return run.id, str(approval.id)
+
+
+async def test_the_operator_may_decide_a_run_that_has_no_owner(approvers):
+    run_id, approval_id = await _ownerless_gate()
+
+    result = await record(approval_id=approval_id, action="approve_plan", user="operator")
+
+    assert result["resumed"] is True
+    jobs = await _jobs(run_id)
+    assert jobs[0].payload["resume"]["decided_by"] == "operator"
+
+
+async def test_the_operator_identity_does_not_reach_someone_elses_run(approvers):
+    """A Slack run belongs to the person who started it, not to the terminal."""
+    _, _, approval_id = await _gate()
+
+    with pytest.raises(DecisionRefused, match="not authorised"):
+        await record(approval_id=approval_id, action="approve_plan", user="operator")
+
+
+async def test_a_stranger_is_still_refused_on_an_ownerless_run(approvers):
+    _, approval_id = await _ownerless_gate()
+
+    with pytest.raises(DecisionRefused, match="started outside Slack"):
+        await record(approval_id=approval_id, action="approve_plan", user=STRANGER)

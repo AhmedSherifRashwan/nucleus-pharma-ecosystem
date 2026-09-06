@@ -49,18 +49,32 @@ def approver_ids() -> set[str]:
     return {part.strip() for part in raw.split(",") if part.strip()}
 
 
+# A run started from the Control UI or a terminal has no external owner. The
+# gateway binds to loopback and requires a token, so reaching this command already
+# means operator access to the machine — but the decision is still recorded under a
+# named identity rather than anonymously.
+OPERATOR = "operator"
+
+
 def authorise(*, user: str | None, run_owner: str | None) -> str:
     """s16: a gate is decided by a named human, not by whoever clicks first."""
     if not user:
-        raise DecisionRefused("no Slack user id was supplied with the decision")
+        raise DecisionRefused("no user id was supplied with the decision")
     allowed = approver_ids()
     if user in allowed:
         return user
     if run_owner and user == run_owner:
         return user
+    if not run_owner and user == OPERATOR:
+        return OPERATOR
+    if run_owner:
+        raise DecisionRefused(
+            f"{user} is not authorised to decide this run. "
+            "Add them to SLACK_APPROVER_IDS, or ask the person who started the run."
+        )
     raise DecisionRefused(
-        f"{user} is not authorised to decide this run. "
-        "Add them to SLACK_APPROVER_IDS, or ask the person who started the run."
+        f"{user} is not authorised to decide this run. It was started outside Slack, "
+        f"so it is decided by an approver in SLACK_APPROVER_IDS or by '{OPERATOR}'."
     )
 
 

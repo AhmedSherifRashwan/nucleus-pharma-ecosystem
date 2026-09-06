@@ -469,3 +469,26 @@ inline only where a specific number is weaker than the section around it. The
 safeguards are unchanged — the gate still fails a report whose evidence does not
 resolve, and a provisional target is still labelled provisional. What changed is
 that it is said where a reader will read it.
+
+
+### D-026 · A dedicated front-door agent, so nobody has to ask for the ecosystem
+Talking to the general-purpose `main` agent meant saying "use the pharma ecosystem"
+every time. A client should not have to know the name of the thing they are using.
+
+*Decision:* a `neucleus` agent whose only purpose is the ecosystem. Its standing
+instructions live in the repository (`openclaw/workspace/agent-neucleus/`) and are
+installed with the skills, so what it will and will not do is reviewed with the code
+rather than edited in place on the machine.
+
+The instruction that matters most is what it must **not** do: never answer the
+pharmaceutical question itself, not even as a summary while the run proceeds.
+Anything it writes from its own knowledge will be contradicted by specialists who
+cite sources, and a plausible answer with no evidence behind it is the specific
+failure the ecosystem exists to prevent.
+
+Its generated `BOOTSTRAP.md` was removed: a front door's identity is defined, not
+discovered.
+
+*Runs outside Slack:* `scripts/run_status.py` reports a run's state to any surface,
+and a run with no external owner is decided by an approver or by the local
+`operator` identity — which is refused on a run that does belong to someone.

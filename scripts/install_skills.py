@@ -27,6 +27,13 @@ OPENCLAW_HOME = Path("~/.openclaw").expanduser()
 # The specialist gets the 16 profiles and the tool wrappers; approvals belong to
 # the Slack-facing agent alone, so a specialist can never decide its own gate.
 TARGETS: dict[str, tuple[Path, tuple[str, ...], tuple[str, ...]]] = {
+    # The dedicated front door: the ecosystem is all it does, so a person never
+    # has to ask for it by name.
+    "neucleus": (
+        OPENCLAW_HOME / "workspaces" / "neucleus" / "skills",
+        ("pharma-ecosystem", "neucleus-approvals", "commands"),
+        (),
+    ),
     "main": (
         OPENCLAW_HOME / "workspace" / "skills",
         # `commands` holds one generated skill per specialist, so /qtpp and the
@@ -67,6 +74,28 @@ def render(text: str) -> str:
     return text.replace(PLACEHOLDER, str(PROJECT_ROOT))
 
 
+# The front-door agent's standing instructions live in the repository, so what it
+# will and will not do is reviewed with the code rather than edited in place.
+AGENT_INSTRUCTIONS = PROJECT_ROOT / "openclaw" / "workspace" / "agent-neucleus"
+AGENT_WORKSPACE = OPENCLAW_HOME / "workspaces" / "neucleus"
+
+
+def install_agent_instructions(*, check: bool) -> None:
+    if not AGENT_INSTRUCTIONS.is_dir():
+        return
+    for source in sorted(AGENT_INSTRUCTIONS.glob("*.md")):
+        target = AGENT_WORKSPACE / source.name
+        content = render(source.read_text())
+        if target.is_file() and target.read_text() == content:
+            continue
+        if check:
+            print(f"  - neucleus/{source.name} (out of date)", file=sys.stderr)
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content)
+        print(f"neucleus: {source.name} -> {target}")
+
+
 def install_one(source: Path, destination: Path, *, check: bool) -> bool:
     """Returns True when the destination already matches the source."""
     expected = {
@@ -103,6 +132,8 @@ def main() -> int:
     if not SOURCE.is_dir():
         print(f"no skills directory at {SOURCE}", file=sys.stderr)
         return 1
+
+    install_agent_instructions(check=args.check)
 
     drifted: list[str] = []
     for agent, (workspace_skills, patterns, excluded) in TARGETS.items():

@@ -31,7 +31,11 @@ The core is **OpenClaw + LangGraph + PostgreSQL + one Python worker**.
 11. **Fail closed.** Missing provider access, evidence gaps, malformed output or
     material conflict produce REVIEW REQUIRED, not silent success.
 12. Never silently change a pharmaceutical role's scope from its source SDS.
-13. A15/A16 stay disabled until dedicated client SDS documents are approved.
+13. A15/A16 are enabled from the client's framework-level role definitions
+    (D-027). Their `source_basis` is `framework_definition`, and that weaker
+    provenance must keep travelling with them — into the planner catalog, the
+    skills and the report's document control. Do not extend their scope beyond
+    what the client's role table states.
 14. Never commit secrets.
 
 ## Method

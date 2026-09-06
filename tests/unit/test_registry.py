@@ -8,7 +8,10 @@ from app.agents.prompt_builder import compose_worker_prompt
 from app.agents.registry import RegistryError, load_registry
 
 ALL_IDS = {f"A{i:02d}" for i in range(1, 17)}
-PROVISIONAL = {"A15", "A16"}
+# The client's role table defines A15 and A16, but no specification was written
+# for either role. They were enabled by client instruction on 6 September 2026;
+# the weaker provenance travels with them (D-027).
+FRAMEWORK_SCOPED = {"A15", "A16"}
 
 
 @pytest.fixture(scope="module")
@@ -29,16 +32,32 @@ def test_all_sixteen_profiles_load(full):
     assert {p.id for p in full.all_profiles()} == ALL_IDS
 
 
-def test_only_a15_a16_are_provisional(full):
-    assert {p.id for p in full.all_profiles() if p.is_provisional} == PROVISIONAL
+def test_all_sixteen_specialists_are_enabled(registry):
+    assert registry.enabled_ids() == ALL_IDS
 
 
-def test_provisional_profiles_are_disabled_by_default(registry):
-    assert registry.enabled_ids() == ALL_IDS - PROVISIONAL
+def test_no_profile_is_provisional_any_more(full):
+    assert [p.id for p in full.all_profiles() if p.is_provisional] == []
 
 
-def test_provisional_profiles_enable_only_on_opt_in(full):
-    assert full.enabled_ids() == ALL_IDS
+def test_the_provisional_mechanism_still_disables_a_profile():
+    """The roster changed; the safeguard did not. A future role without an
+    approved scope must still stay off by default."""
+    from app.schemas.agent import AgentProfile
+
+    profile = AgentProfile(
+        id="A99",
+        slug="unscoped_example",
+        name="Unscoped Example",
+        version="0.1.0",
+        status="provisional",
+        operating_persona="Example",
+        purpose="An example profile with no approved scope.",
+        mission="Demonstrate that provisional profiles remain disabled.",
+        prompt_file="profiles/example.md",
+    )
+    assert profile.is_provisional
+    assert profile.source_sds is None
 
 
 # -- SDS traceability (s11, CLAUDE.md rule 12) -------------------------------
@@ -51,10 +70,34 @@ def test_every_active_profile_names_its_source_sds(full):
             assert profile.source_sds.endswith(".docx")
 
 
-def test_provisional_profiles_have_no_sds(full):
-    """A15/A16 exist because the framework names them, not because an SDS does."""
-    for pid in PROVISIONAL:
-        assert full.get(pid).source_sds is None
+def test_framework_scoped_profiles_declare_their_weaker_provenance(full):
+    """A15/A16 come from the client's role table, not a specification for the role.
+
+    A reader weighing their contribution needs to know that, so it is a field on
+    the profile rather than a comment in the YAML.
+    """
+    for pid in FRAMEWORK_SCOPED:
+        profile = full.get(pid)
+        assert profile.source_basis == "framework_definition"
+        assert profile.source_sds, f"{pid} must still name the client document it came from"
+
+
+def test_every_other_profile_comes_from_a_dedicated_specification(full):
+    for profile in full.all_profiles():
+        if profile.id not in FRAMEWORK_SCOPED:
+            assert profile.source_basis == "dedicated_sds", profile.id
+
+
+def test_the_clients_own_limits_travel_with_the_framework_scoped_roles(full):
+    """Their document forbids sign-off and filing. The profile must too."""
+    gmp = full.get("A15")
+    assert {"compliance_signoff", "batch_release", "quality_approval"} <= set(gmp.forbidden_actions)
+    submission = full.get("A16")
+    assert {"external_submission", "health_authority_communication"} <= set(
+        submission.forbidden_actions
+    )
+    for profile in (gmp, submission):
+        assert "scope_beyond_framework_definition" in profile.escalation_policy.triggers
 
 
 def test_source_documents_are_present_in_the_repo(full):
@@ -117,10 +160,20 @@ def test_routing_matrix_matches_the_prd(full):
         assert full.get(agent_id).common_follow_on == follow_on
 
 
-def test_routing_matrix_excludes_disabled_agents(registry):
-    """A14 -> A15 must drop out while A15 is disabled."""
-    assert "A15" not in registry.routing_matrix()["A14"]
+def test_the_routing_matrix_now_reaches_the_quality_governance_roles(registry):
+    """The client's own hand-off map sends quality evidence to A15 and A16."""
+    matrix = registry.routing_matrix()
+    assert "A15" in matrix
+    assert "A16" in matrix
+    assert "A15" in matrix["A14"]
+
+
+def test_the_routing_matrix_drops_an_agent_that_is_not_enabled(registry, monkeypatch):
+    """The exclusion still works; there is simply nothing disabled to exclude."""
+    trimmed = {k: v for k, v in registry._profiles.items() if k != "A15"}
+    monkeypatch.setattr(registry, "_profiles", trimmed)
     assert "A15" not in registry.routing_matrix()
+    assert "A15" not in registry.routing_matrix().get("A14", [])
 
 
 # -- escalation and evidence -------------------------------------------------
@@ -146,8 +199,12 @@ def test_catalog_never_leaks_prompts(registry):
         assert "prompt" not in " ".join(entry.keys()).lower()
 
 
-def test_catalog_excludes_provisional_profiles(registry):
-    assert not ({e["agent_id"] for e in registry.catalog()} & PROVISIONAL)
+def test_the_catalog_tells_the_planner_where_a_scope_came_from(registry):
+    """The planner should know a role is framework-scoped before assigning work."""
+    entries = {e["agent_id"]: e for e in registry.catalog()}
+    assert set(entries) == ALL_IDS
+    for pid in FRAMEWORK_SCOPED:
+        assert entries[pid]["scope_basis"] == "framework_definition"
 
 
 # -- prompt composition ------------------------------------------------------

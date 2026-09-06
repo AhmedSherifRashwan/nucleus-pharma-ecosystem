@@ -227,15 +227,19 @@ async def test_invalid_plan_fails_without_dispatching(monkeypatch):
     assert "failed validation" in run.error_state
 
 
-async def test_provisional_agent_cannot_be_dispatched(monkeypatch):
-    """A15/A16 have no client SDS (s11)."""
+async def test_an_agent_outside_the_registry_cannot_be_dispatched(monkeypatch):
+    """s11: the validator is what stands between a planned task and execution.
+
+    A15 was the example while it was disabled; it is enabled now (D-027), so the
+    gate is proved with an agent that does not exist at all.
+    """
     run_id, run_ref = await make_run()
     plan = Plan(
         objective="Assess GMP compliance.",
         tasks=[
             PlannedTask(
                 task_id="T1",
-                agent_id="A15",
+                agent_id="A99",
                 objective="Assess GMP compliance for this site.",
                 required_output="Assessment.",
             )

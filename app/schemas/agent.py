@@ -17,6 +17,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 ProfileStatus = Literal["active", "provisional", "retired"]
 
+# s11: where a profile's scope comes from.
+SourceBasis = Literal["dedicated_sds", "framework_definition"]
+
 # Which OpenClaw route executes this profile (s7.3). Never a provider model ID.
 ProfileRoute = Literal["specialist", "executive", "local"]
 
@@ -41,6 +44,11 @@ class AgentProfile(BaseModel):
     # The client document this role derives from. None only for provisional
     # profiles, which is exactly why they stay disabled (s11).
     source_sds: str | None = None
+    # How strong that provenance is. `dedicated_sds` is a specification written for
+    # this one role; `framework_definition` is the client's role table, which is
+    # their wording but deliberately less detailed. A reader of a report needs to
+    # know which, so it travels with the profile rather than living in a comment.
+    source_basis: SourceBasis = "dedicated_sds"
 
     route: ProfileRoute = "specialist"
 
@@ -106,4 +114,5 @@ class AgentProfile(BaseModel):
             "common_follow_on": self.common_follow_on,
             "restrictions": self.forbidden_actions,
             "status": self.status,
+            "scope_basis": self.source_basis,
         }

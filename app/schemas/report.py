@@ -222,6 +222,10 @@ class ReportMetadata(StrictModel):
     model_versions: dict[str, str] = Field(default_factory=dict)
     template_version: str | None = None
     generator_version: str | None = None
+    # s11: contributors whose role definition is the client's framework role table
+    # rather than a specification written for that role. Printed on the document
+    # control table so a reviewer can weigh their contribution accordingly.
+    framework_scoped_agents: dict[str, str] = Field(default_factory=dict)
 
 
 class ExecutiveBriefSection(StrictModel):

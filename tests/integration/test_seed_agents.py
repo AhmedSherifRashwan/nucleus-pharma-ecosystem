@@ -41,16 +41,17 @@ async def test_seed_is_idempotent():
     assert len(rows) == 16
 
 
-async def test_provisional_profiles_are_seeded_but_disabled():
+async def test_every_profile_is_seeded_with_its_source_document():
     await _seed()
     async with session_scope() as session:
         rows = {
             r.id: r for r in (await session.execute(select(AgentProfileRecord))).scalars().all()
         }
     for pid in ("A15", "A16"):
-        assert rows[pid].status == "provisional"
-        assert rows[pid].enabled is False
-        assert rows[pid].source_sds is None
+        assert rows[pid].status == "active"
+        assert rows[pid].enabled is True
+        # Framework-level provenance is still provenance, and must be recorded.
+        assert rows[pid].source_sds
     assert rows["A07"].enabled is True
     assert rows["A07"].status == "active"
 

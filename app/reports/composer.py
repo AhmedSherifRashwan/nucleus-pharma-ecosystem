@@ -627,8 +627,17 @@ async def compose_report(
         evidence_cutoff=max((e.get("retrieved_at") or "" for e in context.evidence), default=None)
         or None,
         agent_versions={
-            r.agent_id: context.agent_names.get(r.agent_id, r.agent_id) for r in context.results
+            r.agent_id: (
+                context.agent_names.get(r.agent_id, r.agent_id)
+                + (
+                    " (framework-level scope)"
+                    if r.agent_id in context.framework_scoped_agents
+                    else ""
+                )
+            )
+            for r in context.results
         },
+        framework_scoped_agents=dict(context.framework_scoped_agents),
         generator_version=generator_version,
         template_version=template_version,
     )

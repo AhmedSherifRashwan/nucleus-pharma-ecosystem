@@ -82,11 +82,20 @@ def test_unknown_agent_is_rejected(registry, budget):
     assert any("unknown agent" in e for e in outcome.errors)
 
 
-def test_provisional_agent_is_rejected_while_disabled(registry, budget):
-    """A15/A16 have no client SDS and must not execute (s11)."""
+def test_the_quality_governance_roles_may_now_be_planned(registry, budget):
+    """A15/A16 were enabled from the client's own role definitions (D-027)."""
+    for agent_id in ("A15", "A16"):
+        outcome = validate_plan(plan([task("T1", agent_id)]), registry, budget)
+        assert outcome.is_valid, outcome.errors
+
+
+def test_a_disabled_agent_is_still_rejected(registry, budget, monkeypatch):
+    """The gate did not go away; there is simply nothing disabled to catch."""
+    disabled = registry.get("A15").model_copy(update={"enabled": False})
+    monkeypatch.setitem(registry._profiles, "A15", disabled)
     outcome = validate_plan(plan([task("T1", "A15")]), registry, budget)
     assert not outcome.is_valid
-    assert any("provisional" in e for e in outcome.errors)
+    assert any("A15" in e for e in outcome.errors)
 
 
 # -- budgets (s12.2) ---------------------------------------------------------

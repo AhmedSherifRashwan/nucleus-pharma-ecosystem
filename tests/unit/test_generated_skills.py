@@ -69,11 +69,12 @@ def test_skill_body_is_the_composed_specialist_prompt(registry):
         assert "Neucleus" in text
 
 
-def test_provisional_skills_say_so(registry):
+def test_framework_scoped_skills_say_where_their_scope_ends(registry):
+    """A15/A16 come from the client's role table, not a specification for the role."""
     for pid in ("A15", "A16"):
         text = (skill_dir(registry.get(pid)) / "SKILL.md").read_text()
-        assert "status: provisional" in text
-        assert "no dedicated client SDS" in text
+        assert "framework level" in text
+        assert "rather than inferring the scope" in text
 
 
 def test_no_stale_skill_directories(registry):

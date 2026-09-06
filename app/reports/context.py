@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from app.agents.registry import get_registry
 from app.audit.logger import get_logger
 from app.schemas.executive import ChallengeResult, ExecutiveDecisionBrief
 from app.schemas.planning import Plan
@@ -79,6 +80,10 @@ class FinalReportContext:
     challenge: ChallengeResult | None = None
     human_decisions: list[dict[str, Any]] = field(default_factory=list)
     project_name: str | None = None
+    # Agents whose scope comes from the client's role table rather than a
+    # specification written for that one role (s11). A reader deciding how much
+    # weight to give a contribution needs to know which.
+    framework_scoped_agents: dict[str, str] = field(default_factory=dict)
 
     @property
     def evidence_refs(self) -> set[str]:
@@ -230,6 +235,14 @@ async def build_context(
         for row in superseded_rows
     ]
 
+    registry = get_registry()
+    contributors = {r.agent_id for r in results}
+    framework_scoped = {
+        p.id: p.name
+        for p in registry.all_profiles()
+        if p.id in contributors and p.source_basis != "dedicated_sds"
+    }
+
     log.info(
         "report_context_built",
         run_ref=run_ref,
@@ -255,4 +268,5 @@ async def build_context(
         challenge=challenge,
         human_decisions=decisions,
         project_name=project_name,
+        framework_scoped_agents=framework_scoped,
     )

@@ -88,10 +88,9 @@ so reports can state it.
 *Open:* confirm both providers' terms before the client deployment. This is an
 account-level risk, not a technical one.
 
-### D-005 · A15 / A16 remain provisional
+### D-005 · A15 / A16 remain provisional — *superseded by D-027*
 No dedicated client SDS exists for GMP Compliance or Regulatory Submission (§11).
-They stay disabled; `Settings` refuses to start in production with
-`ENABLE_PROVISIONAL_PROFILES=true`. Needs client confirmation or replacement roles.
+They stayed disabled until the client instructed otherwise on 6 September 2026.
 
 ### D-009 · Ecosystem name is **Neucleus**
 *Decision (user, 4 Sep 2026):* the assistant is `@neucleus`, not PharmaAI. Applied
@@ -492,3 +491,32 @@ discovered.
 *Runs outside Slack:* `scripts/run_status.py` reports a run's state to any surface,
 and a run with no external owner is decided by an approver or by the local
 `operator` identity — which is refused on a run that does belong to someone.
+
+
+### D-027 · A15 and A16 enabled from the client's own role definitions
+*Decision (user, 6 September 2026):* add the two remaining specialists using what the
+client supplied.
+
+They supplied more than the earlier note recorded. `AI_Ecosystem_PRD_v2_Client_Agent_Roles`
+defines both roles — operating persona, mission, responsibilities, inputs, outputs,
+quality controls, escalation behaviour and hand-offs — derived from
+`AI_Framework_Generic_Softgel_Agents`. What was missing was a *dedicated* specification
+for each role, which is a difference in depth, not in authorship. Both profiles are now
+built from the client's own wording, and both are active.
+
+*The weaker provenance travels with them.* `source_basis` distinguishes
+`dedicated_sds` from `framework_definition`, and it reaches every place the
+distinction matters: the planner's catalog sees `scope_basis` before it assigns work,
+each generated skill states that its role is defined at framework level and must say so
+rather than infer beyond it, and a report naming either agent prints a
+**Framework-level scope** line on its document control table.
+
+*Their client's own limits are the profiles' limits.* The role table forbids autonomous
+compliance sign-off, batch release and quality approval for A15, and filing, health-
+authority communication and treating a dossier as approved for A16. Those are
+`forbidden_actions`, and `scope_beyond_framework_definition` escalates rather than
+guessing.
+
+*The safeguard was not removed, only emptied.* Provisional profiles are still disabled by
+default, the plan validator still refuses a disabled agent, and both behaviours are still
+tested — against a constructed profile now that no real one is provisional.

@@ -18,7 +18,7 @@
 | 11 | Slack Delivery: plan preview, brief, decision gates | **Complete** |
 | 12 | Reports (DOCX/PDF) | **Complete** — deterministic DOCX, versioning, evidence QA, Slack upload |
 | 13 | Human Decisions | **Complete** — buttons decide and resume the run, authorised per §16 |
-| 14 | Expand to 16 Profiles | Not started |
+| 14 | Expand to 16 Profiles | **Complete** — A15/A16 built from the client's role definitions (D-027) |
 | 15 | Production Hardening | Not started |
 
 ## Phase 0 — delivered

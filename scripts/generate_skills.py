@@ -62,12 +62,20 @@ def render_skill(profile: AgentProfile, registry: AgentRegistry) -> str:
 
     body = compose_worker_prompt(profile, registry.domain_prompt(profile.id))
 
-    provenance = (
-        f"Derived from `{profile.source_sds}`."
-        if profile.source_sds
-        else "PROVISIONAL: no dedicated client SDS. Framework-level scope only; "
-        "this specialist is disabled unless explicitly enabled."
-    )
+    if not profile.source_sds:
+        provenance = (
+            "PROVISIONAL: no client source document. Scope is inferred; this "
+            "specialist is disabled unless explicitly enabled."
+        )
+    elif profile.source_basis == "framework_definition":
+        provenance = (
+            f"Derived from `{profile.source_sds}`, which defines this role at "
+            "framework level. No specification was written for this role alone, so "
+            "where a question needs detail beyond that definition, say so rather "
+            "than inferring the scope."
+        )
+    else:
+        provenance = f"Derived from `{profile.source_sds}`."
 
     return "\n".join(
         [

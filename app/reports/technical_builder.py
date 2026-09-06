@@ -251,6 +251,15 @@ class TechnicalReportRenderer:
                 ", ".join(f"{k} {v}" for k, v in sorted(meta.agent_versions.items())) or "—",
             ],
         ]
+        if meta.framework_scoped_agents:
+            rows.append(
+                [
+                    "Framework-level scope",
+                    ", ".join(f"{k} {v}" for k, v in sorted(meta.framework_scoped_agents.items()))
+                    + " — role defined in the client's role table rather than a "
+                    "specification written for that role. Weigh accordingly.",
+                ]
+            )
         self._table(doc, ["Field", "Value"], rows)
 
     def _brief(self, doc: DocxDocument, report: FinalTechnicalReport) -> None:

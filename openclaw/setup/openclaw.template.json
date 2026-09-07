@@ -1,0 +1,178 @@
+{
+  "agents": {
+    "defaults": {
+      "heartbeat": {
+        "agentId": "main"
+      },
+      "models": {
+        "anthropic/claude-fable-5": {
+          "agentRuntime": {
+            "id": "claude-cli"
+          }
+        },
+        "anthropic/claude-fable-5-1": {
+          "agentRuntime": {
+            "id": "claude-cli"
+          }
+        },
+        "anthropic/claude-opus-4-6": {
+          "agentRuntime": {
+            "id": "claude-cli"
+          }
+        },
+        "anthropic/claude-opus-4-7": {
+          "agentRuntime": {
+            "id": "claude-cli"
+          }
+        },
+        "anthropic/claude-opus-4-8": {
+          "agentRuntime": {
+            "id": "claude-cli"
+          }
+        },
+        "anthropic/claude-opus-5": {
+          "agentRuntime": {
+            "id": "claude-cli"
+          }
+        },
+        "anthropic/claude-sonnet-4-6": {
+          "agentRuntime": {
+            "id": "claude-cli"
+          }
+        },
+        "anthropic/claude-sonnet-5": {
+          "agentRuntime": {
+            "id": "claude-cli"
+          }
+        }
+      },
+      "systemAgent": {
+        "agentId": "main"
+      },
+      "workspace": "${HOME}/.openclaw/workspace"
+    },
+    "entries": {
+      "main": {
+        "agentDir": "${HOME}/.openclaw/agents/main/agent",
+        "identity": {
+          "name": "main"
+        },
+        "name": "main",
+        "workspace": "${HOME}/.openclaw/workspace"
+      },
+      "neucleus": {
+        "agentDir": "${HOME}/.openclaw/agents/neucleus/agent",
+        "identity": {
+          "name": "neucleus"
+        },
+        "model": "openai/gpt-5.6-sol",
+        "name": "neucleus",
+        "workspace": "${HOME}/.openclaw/workspaces/neucleus"
+      },
+      "pharma-executive": {
+        "agentDir": "${HOME}/.openclaw/agents/pharma-executive/agent",
+        "identity": {
+          "name": "pharma-executive"
+        },
+        "model": "openai/gpt-5.6-sol",
+        "name": "pharma-executive",
+        "workspace": "${HOME}/.openclaw/workspaces/pharma-executive"
+      },
+      "pharma-specialist": {
+        "agentDir": "${HOME}/.openclaw/agents/pharma-specialist/agent",
+        "identity": {
+          "name": "pharma-specialist"
+        },
+        "model": "anthropic/claude-sonnet-5",
+        "name": "pharma-specialist",
+        "workspace": "${HOME}/.openclaw/workspaces/pharma-specialist"
+      }
+    },
+    "ownership": "explicit"
+  },
+  "bindings": [
+    {
+      "agentId": "main",
+      "match": {
+        "accountId": "*",
+        "channel": "slack"
+      }
+    },
+    {
+      "agentId": "neucleus",
+      "match": {
+        "channel": "slack"
+      },
+      "type": "route"
+    }
+  ],
+  "channels": {
+    "slack": {
+      "allowFrom": [
+        "${SLACK_APPROVER_ID}"
+      ],
+      "appToken": "${SLACK_APP_TOKEN}",
+      "botToken": "${SLACK_BOT_TOKEN}",
+      "channels": {
+        "${SLACK_CHANNEL_ID}": {
+          "enabled": true,
+          "requireMention": true
+        },
+        "main-comms": {
+          "enabled": true,
+          "requireMention": true
+        }
+      },
+      "commands": {
+        "nativeSkills": true
+      },
+      "enabled": true,
+      "groupPolicy": "allowlist"
+    }
+  },
+  "commands": {
+    "ownerAllowFrom": [
+      "slack:U0BUYMZPS1G"
+    ]
+  },
+  "gateway": {
+    "auth": {
+      "mode": "token",
+      "token": "${OPENCLAW_GATEWAY_TOKEN}"
+    },
+    "bind": "loopback",
+    "mode": "local",
+    "port": 18789,
+    "tailscale": {
+      "mode": "off"
+    }
+  },
+  "hooks": {
+    "internal": {
+      "entries": {
+        "session-memory": {
+          "enabled": true
+        }
+      }
+    }
+  },
+  "plugins": {
+    "entries": {
+      "codex": {
+        "enabled": true
+      },
+      "slack": {
+        "enabled": true
+      }
+    }
+  },
+  "talk": {
+    "agentId": "main"
+  },
+  "tools": {
+    "alsoAllow": [
+      "message"
+    ],
+    "profile": "coding"
+  }
+}

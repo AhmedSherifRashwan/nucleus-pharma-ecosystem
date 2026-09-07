@@ -536,3 +536,22 @@ instead — a service that fails silently on every boot is worse than none.
 *Also fixed on the way:* recreating the virtualenv after the move, because uv's
 console scripts embed the absolute path they were created with, and `uv sync` alone
 does not rewrite them.
+
+
+### D-029 · Two install layers, and one dependency that stays manual
+`scripts/install-dependencies.sh` is the system layer — Homebrew, Python 3.12, uv,
+PostgreSQL 17 and its service, Node, optional LibreOffice — and stops where
+`bootstrap.py` starts. Keeping them separate means either can be re-run when the
+other breaks, which is the situation you are actually in when something has gone
+wrong on a new machine.
+
+*OpenClaw is not installed by it.* No non-interactive install command could be
+verified from the artefacts on this machine — the binary is a wrapper around a
+vendored Node runtime, which is consistent with an official installer but does not
+reveal its URL. The script prints the documentation link and marks the row MANUAL
+rather than guessing: a `curl | bash` URL that 404s, or that someone else registers
+later, is a worse outcome than an honest manual step.
+
+*Both scripts are path-independent.* The installer derives the project root from its
+own location. An installer for other machines that hardcodes the author's home
+directory is worse than no installer.

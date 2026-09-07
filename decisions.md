@@ -520,3 +520,19 @@ guessing.
 *The safeguard was not removed, only emptied.* Provisional profiles are still disabled by
 default, the plan validator still refuses a disabled agent, and both behaviours are still
 tested — against a constructed profile now that no real one is provisional.
+
+
+### D-028 · The checkout lives outside ~/Documents
+The worker was never a service — a `nohup` process started by hand, so a reboot left
+runs enqueued with nothing executing, silently. Making it a LaunchAgent failed with
+`EX_CONFIG`, and a probe agent running plain `ls` in the project directory returned
+`Operation not permitted`: macOS TCC denies a launchd-spawned process access to
+`~/Documents`, `~/Desktop` and `~/Downloads` whatever the file permissions say.
+
+*Decision:* the checkout is `~/Neucleus`. `bootstrap.py` detects a TCC-protected
+location and refuses to install a service that cannot start, saying what to do
+instead — a service that fails silently on every boot is worse than none.
+
+*Also fixed on the way:* recreating the virtualenv after the move, because uv's
+console scripts embed the absolute path they were created with, and `uv sync` alone
+does not rewrite them.

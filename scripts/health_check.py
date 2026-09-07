@@ -13,6 +13,7 @@ import sys
 
 from sqlalchemy import text
 
+from app.agents.registry import get_registry
 from app.audit.logger import configure_logging
 from app.config import get_settings
 from app.providers.openclaw_client import get_gateway_client
@@ -96,11 +97,23 @@ async def main() -> int:
         warnings.append("OPENCLAW_GATEWAY_TOKEN is unset (required in production)")
     await client.aclose()
 
-    # 5. Provisional profile gate
-    if settings.enable_provisional_profiles:
-        warnings.append("A15/A16 provisional profiles are ENABLED (PRD s11 keeps them off)")
-    else:
-        print(f"{OK} provisional profiles A15/A16 disabled")
+    # 5. Profile provenance (s11, D-027)
+    registry = get_registry()
+    framework_scoped = [p for p in registry.enabled_profiles() if p.source_basis != "dedicated_sds"]
+    provisional = [p for p in registry.all_profiles() if p.is_provisional]
+    print(
+        f"{OK} profiles: {len(registry.enabled_profiles())} enabled, "
+        f"{len(framework_scoped)} framework-scoped, {len(provisional)} provisional"
+    )
+    if framework_scoped:
+        # Not a warning: it is the recorded decision. But a reader of a report
+        # needs to know which contributors carry the weaker provenance.
+        print(f"      framework-scoped: {', '.join(f'{p.id} {p.name}' for p in framework_scoped)}")
+    if provisional and settings.enable_provisional_profiles:
+        warnings.append(
+            f"{len(provisional)} provisional profile(s) are ENABLED: "
+            + ", ".join(p.id for p in provisional)
+        )
 
     print()
     for w in warnings:

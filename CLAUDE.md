@@ -48,12 +48,18 @@ The core is **OpenClaw + LangGraph + PostgreSQL + one Python worker**.
   `test`. They run against `pharma_ai_test`.
 
 ## Local setup
+The checkout lives at `~/Neucleus`. It must stay outside `~/Documents`,
+`~/Desktop` and `~/Downloads`: macOS denies a launchd-spawned process access to
+those, so the worker LaunchAgent cannot start from them (D-028).
+
 Docker is unavailable on the build machine; PostgreSQL 17 runs via Homebrew
 (D-002). Databases: `pharma_ai`, `pharma_ai_test`.
 
 ```
-uv sync
-uv run alembic upgrade head
+uv run python scripts/bootstrap.py     # idempotent; --check to preview
 uv run python scripts/health_check.py
 uv run pytest
 ```
+
+The worker runs as a LaunchAgent (`ai.neucleus.worker`), not by hand. Check it with
+`launchctl print gui/$UID/ai.neucleus.worker`; its log is `data/worker.log`.

@@ -513,6 +513,109 @@ class TechnicalReportRenderer:
                 doc.add_paragraph(f"{index}. {section.heading}", style="List Bullet")
         return self._save(doc, report, project_name, "Executive_Decision_Brief")
 
+    def render_summary(self, report: FinalTechnicalReport, *, project_name: str) -> RenderedReport:
+        """The technical summary and action list, as its own short document."""
+        summary = report.technical_summary
+        if summary is None:
+            raise ValueError("no technical summary was composed for this report")
+
+        doc = new_document()
+        self._page_numbers(doc, report.metadata.run_ref)
+
+        meta = report.metadata
+        title = doc.add_heading("Technical Summary and Action List", level=0)
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        subtitle = doc.add_paragraph()
+        subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = subtitle.add_run(meta.document_title)
+        run.bold = True
+        run.font.size = Pt(12)
+
+        if meta.status.upper().startswith("REVIEW"):
+            warning = doc.add_paragraph()
+            warning.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            flag = warning.add_run("REVIEW REQUIRED")
+            flag.bold = True
+            flag.font.color.rgb = RGBColor(0xC0, 0x00, 0x00)
+
+        self._table(
+            doc,
+            ["Field", "Value"],
+            [
+                ["Run reference", meta.run_ref],
+                ["Report version", str(meta.report_version)],
+                ["Generated", meta.generated_at],
+                ["Confidence", meta.confidence.replace("_", " ").title()],
+                ["Actions", str(len(summary.actions))],
+                ["Immediate", str(len(summary.immediate_actions))],
+            ],
+        )
+
+        doc.add_heading("Headline", level=1)
+        self._para(doc, summary.headline, bold=True)
+
+        doc.add_heading("Situation", level=1)
+        self._body(doc, summary.situation)
+
+        for heading, items in (
+            ("Key technical findings", summary.key_technical_findings),
+            ("Decisions taken", summary.decisions_taken),
+            ("What changed after independent review", summary.what_changed_after_review),
+            ("Critical risks", summary.critical_risks),
+            ("Open questions", summary.open_questions),
+        ):
+            doc.add_heading(heading, level=1)
+            if items:
+                for item in items:
+                    doc.add_paragraph(item, style="List Bullet")
+            else:
+                self._para(doc, "None identified.", italic=True)
+
+        doc.add_heading("Action list", level=1)
+        if summary.actions:
+            self._table(
+                doc,
+                ["Ref", "Priority", "Action", "Owner", "Depends on", "Closes", "Why"],
+                [
+                    [
+                        a.ref,
+                        a.priority.title(),
+                        a.action,
+                        a.owner_function or "—",
+                        ", ".join(a.depends_on) or "—",
+                        a.closes_gap or "—",
+                        a.rationale or "—",
+                    ]
+                    for a in summary.actions
+                ],
+            )
+            self._para(
+                doc,
+                "Ordered so the list can be worked top to bottom; an action naming a "
+                "dependency waits for it.",
+                italic=True,
+            )
+        else:
+            self._para(doc, "No actions were identified.", italic=True)
+
+        doc.add_heading("Where the reasoning sits", level=1)
+        self._para(
+            doc,
+            "This summary accompanies the full technical report for the same run "
+            f"({meta.run_ref}, version {meta.report_version}), which carries the "
+            "supporting analysis, the evidence register and the references.",
+        )
+        referenced = [a for a in summary.actions if a.report_section]
+        if referenced:
+            self._table(
+                doc,
+                ["Action", "Section of the full report"],
+                [[a.ref, a.report_section or "—"] for a in referenced],
+            )
+        self._para(doc, DISCLAIMER, italic=True)
+
+        return self._save(doc, report, project_name, "Technical_Summary_and_Actions")
+
     def _save(
         self, doc: DocxDocument, report: FinalTechnicalReport, project_name: str, report_type: str
     ) -> RenderedReport:

@@ -242,6 +242,46 @@ class ExecutiveBriefSection(StrictModel):
     decisions_required: list[str] = Field(default_factory=list)
 
 
+class ActionItem(StrictModel):
+    """One thing somebody has to do, stated so they can start on Monday."""
+
+    ref: str = Field(default="", max_length=12)
+    action: str = Field(min_length=1)
+    priority: Literal["immediate", "high", "medium", "low"] = "medium"
+    owner_function: str | None = None
+    rationale: str | None = None
+    # What this unblocks, or what must happen first. An action list without
+    # sequence is a wish list.
+    depends_on: list[str] = Field(default_factory=list)
+    closes_gap: str | None = None
+    effort: str | None = None
+    # Where in the technical report the reasoning behind this action sits.
+    report_section: str | None = None
+
+
+class TechnicalSummary(StrictModel):
+    """The short technical read, and what to do about it (s18).
+
+    A second deliverable rather than a section: the full report answers "what did
+    we find and why", and this answers "what do I do on Monday". They are read by
+    different people, at different moments, and binding them into one document
+    means whichever a reader wants is behind the one they do not.
+    """
+
+    headline: str = Field(min_length=1)
+    situation: str = Field(min_length=1)
+    key_technical_findings: list[str] = Field(default_factory=list)
+    decisions_taken: list[str] = Field(default_factory=list)
+    what_changed_after_review: list[str] = Field(default_factory=list)
+    critical_risks: list[str] = Field(default_factory=list)
+    open_questions: list[str] = Field(default_factory=list)
+    actions: list[ActionItem] = Field(default_factory=list)
+
+    @property
+    def immediate_actions(self) -> list[ActionItem]:
+        return [a for a in self.actions if a.priority == "immediate"]
+
+
 class FinalTechnicalReport(StrictModel):
     """The whole deliverable, as data.
 
@@ -263,6 +303,8 @@ class FinalTechnicalReport(StrictModel):
     references: list[Reference] = Field(default_factory=list)
     work_products: list[WorkProductReference] = Field(default_factory=list)
     unresolved_conflicts: list[str] = Field(default_factory=list)
+    # Rendered as its own document alongside the report and the brief.
+    technical_summary: TechnicalSummary | None = None
 
     @property
     def body_length(self) -> int:

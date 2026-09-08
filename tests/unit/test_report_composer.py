@@ -89,6 +89,39 @@ REFERENCES = {
 }
 
 
+SUMMARY = {
+    "summary": {
+        "headline": "The shell change is workable under stated controls.",
+        "situation": "A QTPP and quality framework were requested. Both are drafted; "
+        "numeric limits remain provisional pending product data.",
+        "key_technical_findings": ["Dissolution is the release-controlling attribute."],
+        "decisions_taken": ["Proceed as a US-focused working draft."],
+        "what_changed_after_review": [
+            "The classification was corrected to the supported position."
+        ],
+        "critical_risks": ["EU timing rests on an unconfirmed assumption."],
+        "open_questions": ["Is a product-specific guidance available?"],
+        "actions": [
+            {
+                "action": "Request the excipient supplier's aldehyde specification.",
+                "priority": "immediate",
+                "owner_function": "Procurement",
+                "rationale": "Cross-linking risk cannot be bounded without it.",
+                "depends_on": [],
+                "closes_gap": "G-01",
+                "report_section": "Quality target product profile",
+            },
+            {
+                "action": "Run paired dissolution with and without enzyme.",
+                "priority": "high",
+                "owner_function": "Analytical Development",
+                "depends_on": ["A1"],
+            },
+        ],
+    }
+}
+
+
 class StubClient:
     """Answers by schema name and records the prompt it was given."""
 
@@ -123,6 +156,7 @@ class StubClient:
             "ClosingMatter": CLOSING,
             "BriefSection": BRIEF,
             "ReferenceList": REFERENCES,
+            "SummaryDraft": SUMMARY,
         }[name]
         return schema.model_validate(payload), Usage(duration_ms=5, steps=1), None
 
@@ -457,3 +491,49 @@ async def test_the_composer_is_told_to_state_uncertainty_once():
     prompt = client.prompts["SectionDraft"]
     assert "ONCE" in prompt
     assert "Do not qualify every sentence" in prompt
+
+
+# -- the technical summary and action list -----------------------------------
+
+
+@pytest.mark.asyncio
+async def test_a_summary_and_action_list_accompany_the_report():
+    """The report answers what was found; the summary answers what to do."""
+    outcome = await compose_report(context(), client=StubClient())
+    summary = outcome.report.technical_summary
+
+    assert summary is not None
+    assert summary.headline
+    assert len(summary.actions) == 2
+    assert summary.immediate_actions[0].owner_function == "Procurement"
+
+
+@pytest.mark.asyncio
+async def test_actions_are_referenced_so_one_can_depend_on_another():
+    outcome = await compose_report(context(), client=StubClient())
+    actions = outcome.report.technical_summary.actions
+
+    assert [a.ref for a in actions] == ["A1", "A2"]
+    assert actions[1].depends_on == ["A1"]
+
+
+@pytest.mark.asyncio
+async def test_the_summary_is_written_from_the_finished_report():
+    """Composed last, so it reflects the corrections, not a second opinion."""
+    client = StubClient()
+    await compose_report(context(), client=client)
+    prompt = client.prompts["SummaryDraft"]
+
+    assert "What the independent review changed" in prompt
+    assert "Conclusions reached" in prompt
+    assert "not an action" in prompt
+
+
+@pytest.mark.asyncio
+async def test_a_failed_summary_does_not_cost_the_report():
+    client = StubClient(fail={"SummaryDraft"})
+    outcome = await compose_report(context(), client=client)
+
+    assert outcome.report.technical_summary is None
+    assert outcome.report.body_sections
+    assert any("technical summary" in w for w in outcome.warnings)

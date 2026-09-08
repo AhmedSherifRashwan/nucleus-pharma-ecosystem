@@ -64,6 +64,7 @@ class ReportOutcome:
     paths: list[Path] = field(default_factory=list)
     primary: Path | None = None
     brief_path: Path | None = None
+    summary_path: Path | None = None
     pdf_path: Path | None = None
     version: int = 1
     warnings: list[str] = field(default_factory=list)
@@ -147,8 +148,17 @@ class ReportService:
 
         rendered = renderer.render(report, project_name=subject)
         brief_doc = renderer.render_brief(report, project_name=subject)
-
         paths = [rendered.path, brief_doc.path]
+
+        summary_doc = None
+        if report.technical_summary is not None:
+            summary_doc = renderer.render_summary(report, project_name=subject)
+            paths.append(summary_doc.path)
+        else:
+            warnings.append(
+                "No technical summary was produced for this run; the full report and "
+                "the brief are unaffected."
+            )
         pdf_path = None
         if self.pdf_enabled:
             pdf_path = await convert_to_pdf(rendered.path)
@@ -167,6 +177,7 @@ class ReportService:
             version=version,
             rendered=rendered,
             brief_doc=brief_doc,
+            summary_doc=summary_doc,
             pdf_path=pdf_path,
             gate=gate,
             report=report,
@@ -186,6 +197,7 @@ class ReportService:
             paths=paths,
             primary=rendered.path,
             brief_path=brief_doc.path,
+            summary_path=summary_doc.path if summary_doc else None,
             pdf_path=pdf_path,
             version=version,
             warnings=warnings,
@@ -206,6 +218,7 @@ class ReportService:
         version: int,
         rendered: RenderedReport,
         brief_doc: RenderedReport,
+        summary_doc: RenderedReport | None,
         pdf_path: Path | None,
         gate: GateResult,
         report: FinalTechnicalReport,
@@ -213,7 +226,10 @@ class ReportService:
     ) -> None:
         async with session_scope() as session:
             artifacts = ArtifactRepository(session)
-            for suffix, doc in (("", rendered), ("-brief", brief_doc)):
+            documents = [("", rendered), ("-brief", brief_doc)]
+            if summary_doc is not None:
+                documents.append(("-summary", summary_doc))
+            for suffix, doc in documents:
                 await artifacts.create(
                     title=doc.filename,
                     kind="report",
@@ -252,6 +268,10 @@ class ReportService:
                     "sha256": rendered.sha256,
                     "sections": rendered.section_count,
                     "words": rendered.word_count,
+                    "documents": [d.filename for _, d in documents],
+                    "actions": (
+                        len(report.technical_summary.actions) if report.technical_summary else 0
+                    ),
                     "references": len(report.references),
                     "gate": gate.as_metadata(),
                     "warnings": warnings[:20],

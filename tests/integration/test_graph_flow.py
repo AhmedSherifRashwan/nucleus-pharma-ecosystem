@@ -390,11 +390,13 @@ async def test_a_completed_run_produces_a_report_artifact(monkeypatch):
 
     assert final["status"] == "complete"
     paths = [Path(p) for p in (final.get("report_paths") or [])]
-    # The technical report and the standalone brief are separate deliverables.
-    assert len(paths) == 2
+    # Three deliverables: the detailed report, the decision brief, and the
+    # technical summary with its action list.
+    assert len(paths) == 3
     assert all(p.is_file() and p.suffix == ".docx" for p in paths)
     assert any("Technical_Report" in p.name for p in paths)
     assert any("Executive_Decision_Brief" in p.name for p in paths)
+    assert any("Technical_Summary_and_Actions" in p.name for p in paths)
     assert all(p.name.endswith("_v1.docx") for p in paths)
     # The filename carries the subject, not the Slack channel and timestamp.
     assert not any(p.name.startswith("Slack_") for p in paths)
@@ -404,7 +406,7 @@ async def test_a_completed_run_produces_a_report_artifact(monkeypatch):
             a for a in await ArtifactRepository(s).list_for_run(run_id) if a.kind == "report"
         ]
         events = await AuditRepository(s).event_types_for_run(run_id)
-    assert sorted(a.version for a in artifacts) == [1, 1]
+    assert sorted(a.version for a in artifacts) == [1, 1, 1]
     assert "report.generated" in events
 
 

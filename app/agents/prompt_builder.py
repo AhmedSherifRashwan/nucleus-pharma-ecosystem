@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from pathlib import Path
 
 from app.config import get_settings
 from app.schemas.agent import AgentProfile
+
+VERSION_MARKER = re.compile(r"^<!--\s*version:\s*[0-9.]+\s*-->\s*\n?")
 
 
 @lru_cache
@@ -14,7 +17,9 @@ def _common_template() -> str:
     path = Path(get_settings().worker_prompts_path) / "common_v1.md"
     if not path.is_file():
         raise FileNotFoundError(f"common worker prompt not found: {path}")
-    return path.read_text(encoding="utf-8")
+    # The version marker is metadata for the seeder's immutability check, not an
+    # instruction. A specialist reading a stray HTML comment learns nothing.
+    return VERSION_MARKER.sub("", path.read_text(encoding="utf-8"), count=1).lstrip()
 
 
 def _bullets(items: list[str], empty: str = "- (none specified)") -> str:

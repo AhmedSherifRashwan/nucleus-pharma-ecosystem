@@ -399,3 +399,93 @@ def test_the_pdf_carries_the_same_sections(tmp_path):
     pdf = asyncio.run(convert_to_pdf(out.path))
     assert pdf is not None and pdf.is_file()
     assert pdf.stat().st_size > 10_000
+
+
+# -- the technical summary as its own document -------------------------------
+
+
+def summary_report(**kw):
+    from app.schemas.report import ActionItem, TechnicalSummary
+
+    return report(
+        technical_summary=TechnicalSummary(
+            headline="The shell change is workable under stated controls.",
+            situation="A QTPP was requested. It is drafted; limits stay provisional.",
+            key_technical_findings=["Dissolution is the release-controlling attribute."],
+            decisions_taken=["Proceed as a US-focused working draft."],
+            what_changed_after_review=["The classification was corrected."],
+            critical_risks=["EU timing rests on an unconfirmed assumption."],
+            actions=[
+                ActionItem(
+                    ref="A1",
+                    action="Request the excipient supplier's aldehyde specification.",
+                    priority="immediate",
+                    owner_function="Procurement",
+                    rationale="Cross-linking risk cannot be bounded without it.",
+                    closes_gap="G-02",
+                    report_section="Quality target product profile",
+                ),
+                ActionItem(
+                    ref="A2",
+                    action="Run paired dissolution with and without enzyme.",
+                    priority="high",
+                    depends_on=["A1"],
+                ),
+            ],
+        ),
+        **kw,
+    )
+
+
+def test_the_summary_is_a_separate_shorter_document(tmp_path):
+    renderer = TechnicalReportRenderer(tmp_path)
+    rep = summary_report()
+    full = renderer.render(rep, project_name="Midostaurin")
+    summary = renderer.render_summary(rep, project_name="Midostaurin")
+
+    assert "Technical_Summary_and_Actions" in summary.filename
+    assert summary.word_count < full.word_count
+    # It carries the actions, not the technical body.
+    body = text_of(summary.path)
+    assert "aldehyde specification" in body
+    assert "held in solution" not in body
+
+
+def test_the_action_list_carries_what_someone_needs_to_start(tmp_path):
+    body = text_of(
+        TechnicalReportRenderer(tmp_path)
+        .render_summary(summary_report(), project_name="Midostaurin")
+        .path
+    )
+    assert "A1" in body and "A2" in body
+    assert "Procurement" in body
+    assert "Immediate" in body
+    # A dependency is stated, so the list can be worked top to bottom.
+    assert "Cross-linking risk cannot be bounded without it." in body
+    assert "G-02" in body
+
+
+def test_the_summary_points_back_to_where_the_reasoning_sits(tmp_path):
+    body = text_of(
+        TechnicalReportRenderer(tmp_path)
+        .render_summary(summary_report(), project_name="Midostaurin")
+        .path
+    )
+    assert "Quality target product profile" in body
+    assert "Where the reasoning sits" in body
+
+
+def test_review_required_is_stamped_on_the_summary_too(tmp_path):
+    """Somebody who only reads the action list must still see the caveat."""
+    body = text_of(
+        TechnicalReportRenderer(tmp_path)
+        .render_summary(summary_report(), project_name="Midostaurin")
+        .path
+    )
+    assert "REVIEW REQUIRED" in body
+    assert "not a regulatory approval" in body
+
+
+def test_a_report_with_no_summary_cannot_render_one(tmp_path):
+    with pytest.raises(ValueError, match="no technical summary"):
+        TechnicalReportRenderer(tmp_path).render_summary(report(), project_name="X")

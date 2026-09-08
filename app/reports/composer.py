@@ -48,6 +48,7 @@ from app.schemas.report import (
     ReportSection,
     ReviewIssue,
     RevisionEntry,
+    TechnicalSummary,
     WorkProductReference,
 )
 
@@ -108,6 +109,10 @@ class ClosingMatter(StrictModel):
 
 class ReferenceList(StrictModel):
     references: list[Reference] = []
+
+
+class SummaryDraft(StrictModel):
+    summary: TechnicalSummary
 
 
 class BriefSection(StrictModel):
@@ -461,6 +466,84 @@ async def compose_closing(
     return closing, usage
 
 
+async def compose_summary(
+    context: FinalReportContext,
+    report: FinalTechnicalReport,
+    client: OpenClawClient,
+    session_key: str,
+    key_prefix: str,
+) -> tuple[TechnicalSummary, Usage]:
+    """The short technical read and the action list (s18).
+
+    Composed last, from the finished report rather than from the raw material, so
+    it summarises what was actually concluded — including the corrections made
+    after review — instead of reaching its own second opinion.
+    """
+    sections = (
+        "\n".join(f"- {s.heading}: {(s.body or '')[:400]}" for s in report.body_sections)
+        or "(no body sections)"
+    )
+    gaps = (
+        "\n".join(
+            f"- {g.gap_id or '?'} [{g.category}] {g.gap}"
+            + (" (blocks completion)" if g.blocks_completion else "")
+            for g in report.information_gaps
+        )
+        or "(none recorded)"
+    )
+    review = (
+        "\n".join(
+            f"- {i.issue}: {i.resolution} -> {i.final_position}" for i in report.critical_review
+        )
+        or "(no issues raised)"
+    )
+    actions = (
+        "\n".join(f"- [{a.priority}] {a.action}" for a in report.recommended_actions) or "(none)"
+    )
+
+    user = (
+        "Write the technical summary and action list. This is a second, short "
+        "document that accompanies the full report — one to three pages, for a "
+        "development lead who has to act on it this week.\n\n"
+        f"## The request\n{context.user_request}\n\n"
+        f"## The report's own sections\n{sections}\n\n"
+        f"## Conclusions reached\n{report.conclusions[:4000]}\n\n"
+        f"## What the independent review changed\n{review}\n\n"
+        f"## Open gaps\n{gaps}\n\n"
+        f"## Actions the report already recommends\n{actions}\n\n"
+        f"## Unresolved disagreements\n"
+        + ("\n".join(f"- {c}" for c in report.unresolved_conflicts) or "(none)")
+        + "\n\nRequirements:\n"
+        "- `headline`: one sentence a reader could repeat in a meeting.\n"
+        "- `situation`: what was asked and what state the answer is in. Two short "
+        "paragraphs at most.\n"
+        "- `key_technical_findings`: the findings that change what somebody does. "
+        "Not everything the report says — the parts with consequences.\n"
+        "- `decisions_taken`: what has been settled, so nobody reopens it.\n"
+        "- `what_changed_after_review`: where the independent review corrected the "
+        "draft. State the corrected position, never the superseded one.\n"
+        "- `actions`: the real work, ordered so the list can be followed top to "
+        "bottom. Give each an `ref` (A1, A2, ...), an owner function, a priority, "
+        "the reasoning in one line, `depends_on` where an action needs another "
+        "finished first, `closes_gap` with the gap id where it closes one, and "
+        "`report_section` naming where the reasoning sits in the full report.\n"
+        "- An action must be something a person can start. 'Consider the "
+        "implications' is not an action; 'Request the excipient supplier's aldehyde "
+        "specification' is.\n"
+        "- Do not invent work the report does not support, and do not soften a gap "
+        "into an action that pretends it is closed."
+    )
+    result, usage = await _call(
+        client, SummaryDraft, user, key=f"{key_prefix}-summary", session_key=session_key
+    )
+    assert isinstance(result, SummaryDraft)
+    numbered = [
+        item.model_copy(update={"ref": item.ref or f"A{index}"})
+        for index, item in enumerate(result.summary.actions, start=1)
+    ]
+    return result.summary.model_copy(update={"actions": numbered}), usage
+
+
 async def compose_references(
     context: FinalReportContext, client: OpenClawClient, session_key: str, key_prefix: str
 ) -> tuple[list[Reference], Usage]:
@@ -683,6 +766,17 @@ async def compose_report(
         ],
         unresolved_conflicts=closing.unresolved_conflicts,
     )
+
+    try:
+        summary, usage = await compose_summary(
+            context, report, client, f"{session_key}-summary", key_prefix
+        )
+        total = total + usage
+        report = report.model_copy(update={"technical_summary": summary})
+    except (GatewayError, ValueError) as exc:
+        # The report still ships; a missing summary is a smaller loss than a
+        # summary that invents work nobody agreed to.
+        warnings.append(f"The technical summary could not be composed: {exc}")
 
     log.info(
         "report_composed",

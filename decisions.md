@@ -555,3 +555,27 @@ later, is a worse outcome than an honest manual step.
 *Both scripts are path-independent.* The installer derives the project root from its
 own location. An installer for other machines that hardcodes the author's home
 directory is worse than no installer.
+
+
+### D-030 · The action list is a second document, not a section
+*Decision (user, 8 September 2026):* every run delivers a technical summary with an
+action list alongside the detailed report.
+
+It is a separate document rather than a chapter because the two are read by
+different people at different moments. The full report answers "what did we find,
+and why should I believe it"; the summary answers "what do I do this week". Binding
+them together means whichever a reader wants sits behind the one they do not.
+
+*Composed last, from the finished report* rather than from the raw specialist
+material — so it summarises what was actually concluded, including the corrections
+the independent review forced, instead of reaching a second opinion that could
+contradict the document it accompanies.
+
+*An action must be startable.* The composer is told that "consider the implications"
+is not an action and "request the excipient supplier's aldehyde specification" is.
+Actions carry a reference, an owner function, a priority, a dependency where one
+exists, the gap they close, and the section of the full report holding the
+reasoning — so the list can be worked top to bottom and each line traced back.
+
+*It cannot cost the report.* A failed summary is a warning; the report and the brief
+still ship. A summary that invented work nobody agreed to would be worse than none.

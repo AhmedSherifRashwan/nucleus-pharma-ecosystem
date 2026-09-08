@@ -232,6 +232,27 @@ class FakeGateway:
             )
         if name == "ReferenceList":
             return schema.model_validate({"references": list(self.references)})
+        if name == "SummaryDraft":
+            return schema.model_validate(
+                {
+                    "summary": {
+                        "headline": "Workable under the stated controls.",
+                        "situation": "The requested assessment is complete.",
+                        "key_technical_findings": ["Dissolution is release-controlling."],
+                        "decisions_taken": ["Proceed under provisional controls."],
+                        "what_changed_after_review": [],
+                        "critical_risks": [],
+                        "open_questions": [],
+                        "actions": [
+                            {
+                                "action": "Run the confirmatory study.",
+                                "priority": "high",
+                                "owner_function": "Analytical Development",
+                            }
+                        ],
+                    }
+                }
+            )
         return None
 
     async def run_specialist(

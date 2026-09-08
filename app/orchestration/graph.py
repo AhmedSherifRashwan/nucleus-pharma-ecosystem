@@ -1066,7 +1066,7 @@ async def build_report(state: RunState) -> dict[str, Any]:
                 "current_stage": "report_failed",
                 "report_error": f"The report could not be generated: {fallback_exc}",
             }
-        paths = [str(result.path)]
+        paths = [str(result.path), *(str(p) for p in result.extra_paths)]
         review_required = True
         warnings = [
             f"The full technical report could not be composed ({exc}). "

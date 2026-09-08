@@ -489,3 +489,170 @@ def test_review_required_is_stamped_on_the_summary_too(tmp_path):
 def test_a_report_with_no_summary_cannot_render_one(tmp_path):
     with pytest.raises(ValueError, match="no technical summary"):
         TechnicalReportRenderer(tmp_path).render_summary(report(), project_name="X")
+
+
+# -- the agent trail and audit record ----------------------------------------
+
+
+def audit_inputs(**kw):
+    from datetime import UTC, datetime
+
+    from app.reports.audit_builder import AuditInputs
+    from app.schemas.specialist import (
+        ConflictOrQuestion,
+        EvidenceRef,
+        Finding,
+        RiskItem,
+        SpecialistResult,
+    )
+
+    base = {
+        "run_ref": "RUN-2026-0011",
+        "document_title": "QTPP — Midostaurin 25 mg Softgel",
+        "generated_at": "2026-09-08 19:00 UTC",
+        "status": "review_required",
+        "started_at": datetime(2026, 9, 8, 18, 0, tzinfo=UTC),
+        "agent_names": {"A02": "Regulatory Intelligence Expert", "A14": "Quality Assurance Expert"},
+        "tasks": [
+            {
+                "task_id": "T01",
+                "agent_id": "A02",
+                "group": 0,
+                "status": "complete",
+                "objective": "Establish the ANDA and CTD basis.",
+            },
+            {
+                "task_id": "T02",
+                "agent_id": "A14",
+                "group": 1,
+                "status": "needs_information",
+                "objective": "Review the draft independently.",
+            },
+        ],
+        "results": [
+            SpecialistResult(
+                task_id="T01",
+                agent_id="A02",
+                status="complete",
+                executive_summary="The ANDA pathway applies.",
+                findings=[
+                    Finding(
+                        statement="A product-specific guidance exists.",
+                        basis="fact",
+                        evidence_refs=[EvidenceRef(evidence_id="E-1")],
+                    ),
+                    Finding(
+                        statement="The dossier will need a two-tier method.",
+                        basis="inference",
+                    ),
+                ],
+                assumptions=["The reference product is unchanged."],
+                information_required=["Orange Book entry"],
+                risks=[
+                    RiskItem(
+                        description="Timing rests on unconfirmed exclusivity.",
+                        likelihood="medium",
+                        impact="high",
+                    )
+                ],
+                conflicts_or_questions=[
+                    ConflictOrQuestion(
+                        description="Classification disputed.", conflicting_with_agent="A05"
+                    )
+                ],
+                escalation_required=True,
+                escalation_reason="Regulatory identity unverified.",
+                artifacts=["ART-5"],
+            )
+        ],
+        "conflicts": [
+            {
+                "description": "BCS classification disputed between specialists.",
+                "agents": ["A02", "A05"],
+                "severity": "high",
+                "material": True,
+                "state": "open",
+                "resolution": None,
+            }
+        ],
+        "approvals": [
+            {
+                "gate": "plan",
+                "decision_class": "amber",
+                "status": "approved",
+                "decided_by": "operator",
+                "decided_at": "18:05:00",
+            }
+        ],
+        "artifacts": [
+            {
+                "ref": "ART-7",
+                "title": "QTPP Rev 0",
+                "status": "superseded",
+                "agent": "A03",
+                "superseded_by": "ART-9",
+            }
+        ],
+        "evidence": [{"ref": "E-1", "reliability": 1, "title": "FDA PSG", "agent": "A02"}],
+        "events": [
+            {"type": "run.created", "at": datetime(2026, 9, 8, 18, 0, tzinfo=UTC), "detail": ""},
+            {
+                "type": "task.complete",
+                "at": datetime(2026, 9, 8, 18, 12, tzinfo=UTC),
+                "detail": "complete",
+            },
+        ],
+    }
+    return AuditInputs(**{**base, **kw})
+
+
+def render_audit(tmp_path, inputs=None):
+    from app.reports.audit_builder import AuditTrailRenderer
+
+    return AuditTrailRenderer(tmp_path).render(inputs or audit_inputs(), project_name="Midostaurin")
+
+
+def test_the_audit_record_shows_what_each_specialist_reported(tmp_path):
+    body = text_of(render_audit(tmp_path).path)
+    assert "A02 — Regulatory Intelligence Expert" in body
+    assert "The ANDA pathway applies." in body
+    assert "A product-specific guidance exists." in body
+
+
+def test_every_finding_shows_what_it_rests_on(tmp_path):
+    """The basis is the point: a fact and an inference are not the same claim."""
+    body = text_of(render_audit(tmp_path).path)
+    assert "Fact" in body and "Inference" in body
+    assert "E-1" in body
+
+
+def test_an_unsupported_claim_is_called_out(tmp_path):
+    body = text_of(render_audit(tmp_path).path)
+    assert "without an evidence reference" in body
+
+
+def test_disagreement_and_escalation_survive_into_the_record(tmp_path):
+    body = text_of(render_audit(tmp_path).path)
+    assert "BCS classification disputed between specialists." in body
+    assert "remain open" in body
+    assert "Regulatory identity unverified." in body
+    assert "Classification disputed." in body
+
+
+def test_superseded_drafts_are_recorded_with_their_replacement(tmp_path):
+    body = text_of(render_audit(tmp_path).path)
+    assert "ART-7" in body and "ART-9" in body
+    assert "superseded draft is kept for traceability" in body
+
+
+def test_the_timeline_and_human_decisions_are_recorded(tmp_path):
+    body = text_of(render_audit(tmp_path).path)
+    assert "Execution timeline" in body
+    assert "Specialist returned" in body
+    assert "operator" in body
+
+
+def test_the_audit_record_is_never_overwritten(tmp_path):
+    render_audit(tmp_path)
+    with pytest.raises(FileExistsError):
+        render_audit(tmp_path)

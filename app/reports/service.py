@@ -17,13 +17,16 @@ analysis.
 
 from __future__ import annotations
 
+import hashlib
 import re
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from app.audit.logger import get_logger
 from app.config import get_settings
+from app.reports.audit_builder import AuditTrailRenderer, RenderedAudit, build_audit_inputs
 from app.reports.builder import ReportBuilder, ReportInputs, ReportResult
 from app.reports.composer import compose_report
 from app.reports.context import build_context
@@ -65,6 +68,7 @@ class ReportOutcome:
     primary: Path | None = None
     brief_path: Path | None = None
     summary_path: Path | None = None
+    audit_path: Path | None = None
     pdf_path: Path | None = None
     version: int = 1
     warnings: list[str] = field(default_factory=list)
@@ -150,6 +154,21 @@ class ReportService:
         brief_doc = renderer.render_brief(report, project_name=subject)
         paths = [rendered.path, brief_doc.path]
 
+        audit_doc = await self._render_audit(
+            run_id=run_id,
+            run_ref=run_ref,
+            run_dir=run_dir,
+            subject=subject,
+            document_title=report.metadata.document_title,
+            generated_at=report.metadata.generated_at,
+            status=report.metadata.status,
+            version=version,
+            agent_names=agent_names or {},
+            warnings=warnings,
+        )
+        if audit_doc is not None:
+            paths.append(audit_doc.path)
+
         summary_doc = None
         if report.technical_summary is not None:
             summary_doc = renderer.render_summary(report, project_name=subject)
@@ -178,6 +197,7 @@ class ReportService:
             rendered=rendered,
             brief_doc=brief_doc,
             summary_doc=summary_doc,
+            audit_doc=audit_doc,
             pdf_path=pdf_path,
             gate=gate,
             report=report,
@@ -198,6 +218,7 @@ class ReportService:
             primary=rendered.path,
             brief_path=brief_doc.path,
             summary_path=summary_doc.path if summary_doc else None,
+            audit_path=audit_doc.path if audit_doc else None,
             pdf_path=pdf_path,
             version=version,
             warnings=warnings,
@@ -209,6 +230,42 @@ class ReportService:
             composed=True,
         )
 
+    async def _render_audit(
+        self,
+        *,
+        run_id: uuid.UUID,
+        run_ref: str,
+        run_dir: Path,
+        subject: str,
+        document_title: str,
+        generated_at: str,
+        status: str,
+        version: int,
+        agent_names: dict[str, str],
+        warnings: list[str],
+    ) -> RenderedAudit | None:
+        """The working record, rendered from the database with no model call.
+
+        Both delivery paths call this. A run whose composition failed is exactly
+        the run someone needs the trail for, so it must not depend on composition
+        having succeeded.
+        """
+        try:
+            inputs = await build_audit_inputs(
+                run_id=run_id,
+                run_ref=run_ref,
+                document_title=document_title,
+                generated_at=generated_at,
+                status=status,
+                report_version=version,
+                agent_names=agent_names,
+            )
+            return AuditTrailRenderer(run_dir).render(inputs, project_name=subject)
+        except Exception as exc:  # noqa: BLE001 - the record must not fail the run
+            log.warning("audit_trail_failed", error=str(exc)[:200])
+            warnings.append(f"The agent trail could not be rendered: {exc}")
+            return None
+
     async def _register(
         self,
         *,
@@ -219,6 +276,7 @@ class ReportService:
         rendered: RenderedReport,
         brief_doc: RenderedReport,
         summary_doc: RenderedReport | None,
+        audit_doc: RenderedAudit | None,
         pdf_path: Path | None,
         gate: GateResult,
         report: FinalTechnicalReport,
@@ -226,9 +284,11 @@ class ReportService:
     ) -> None:
         async with session_scope() as session:
             artifacts = ArtifactRepository(session)
-            documents = [("", rendered), ("-brief", brief_doc)]
+            documents: list[tuple[str, Any]] = [("", rendered), ("-brief", brief_doc)]
             if summary_doc is not None:
                 documents.append(("-summary", summary_doc))
+            if audit_doc is not None:
+                documents.append(("-audit", audit_doc))
             for suffix, doc in documents:
                 await artifacts.create(
                     title=doc.filename,
@@ -351,10 +411,26 @@ class ReportService:
         result = builder.build(inputs)
 
         paths = [str(result.path)]
+        audit_doc = await self._render_audit(
+            run_id=run_id,
+            run_ref=run_ref,
+            run_dir=run_dir,
+            subject=title,
+            document_title=title,
+            generated_at=result.filename,
+            status="review_required",
+            version=version,
+            agent_names=agent_names or {},
+            warnings=warnings,
+        )
+        if audit_doc is not None:
+            paths.append(str(audit_doc.path))
+            result.extra_paths.append(audit_doc.path)
         if self.pdf_enabled:
             pdf_path = await convert_to_pdf(result.path)
             if pdf_path is not None:
                 paths.append(str(pdf_path))
+                result.extra_paths.append(pdf_path)
 
         async with session_scope() as session:
             artifacts = ArtifactRepository(session)
@@ -374,18 +450,27 @@ class ReportService:
             )
             for extra in paths[1:]:
                 path = Path(extra)
+                is_audit = "Agent_Trail" in path.name
                 await artifacts.create(
                     title=path.name,
                     kind="report",
-                    content_type="application/pdf",
+                    content_type=(
+                        DOCX_CONTENT_TYPE if path.suffix == ".docx" else "application/pdf"
+                    ),
                     storage_path=str(path),
                     size_bytes=path.stat().st_size,
+                    # Every delivered document carries its own checksum: a file a
+                    # client holds must be traceable to the run that produced it,
+                    # whichever document it is.
+                    sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
                     project_id=project_id,
                     run_id=run_id,
                     version=result.version,
                     template_version=result.template_version,
                     generator_version=result.generator_version,
-                    artifact_ref=f"RPT-{run_ref}-v{result.version}-pdf",
+                    artifact_ref=(
+                        f"RPT-{run_ref}-v{result.version}-{'audit' if is_audit else 'pdf'}"
+                    ),
                 )
             await AuditRepository(session).record(
                 event_type=EventType.REPORT_GENERATED,

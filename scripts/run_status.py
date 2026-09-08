@@ -86,6 +86,7 @@ async def status(run_ref: str) -> dict:
         started = run.created_at
         finished = run.completed_at if hasattr(run, "completed_at") else None
         brief = run.executive_brief
+        plan_data = run.plan
 
     elapsed = int(((finished or datetime.now(UTC)) - started).total_seconds())
     done = [t for t in tasks if t.status not in ("pending", "ready", "running")]
@@ -118,6 +119,32 @@ async def status(run_ref: str) -> dict:
         ],
     }
 
+    # The plan itself, not a count of it. A reader asked to approve nine
+    # workstreams needs to see the nine, with who does what and what waits on what.
+    if plan_data:
+        tasks_by_id = {t["task_id"]: t for t in plan_data.get("tasks", [])}
+        result["plan"] = {
+            "objective": plan_data.get("objective"),
+            "output_type": plan_data.get("output_type"),
+            "assumptions": plan_data.get("assumptions", []),
+            "information_gaps": plan_data.get("information_gaps", []),
+            "rationale": plan_data.get("approval_rationale"),
+            "workstreams": [
+                {
+                    "task": t["task_id"],
+                    "agent": t["agent_id"],
+                    "name": names.get(t["agent_id"], t["agent_id"]),
+                    "objective": t["objective"],
+                    "required_output": t.get("required_output"),
+                    "depends_on": [
+                        f"{d} ({tasks_by_id[d]['agent_id']})" if d in tasks_by_id else d
+                        for d in (t.get("depends_on") or [])
+                    ],
+                }
+                for t in plan_data.get("tasks", [])
+            ],
+        }
+
     if pending:
         gate = pending[0]
         result["awaiting_decision"] = {
@@ -125,6 +152,12 @@ async def status(run_ref: str) -> dict:
             "gate": gate.gate,
             "decision_class": gate.decision_class,
             "payload": gate.requested_payload,
+            "show_the_user": (
+                "the full workstream list under `plan.workstreams`, one line each, "
+                "before asking them to approve"
+                if gate.gate == "plan"
+                else "the decisions under `payload.decisions`, with their class"
+            ),
             "how_to_answer": (
                 "uv run python scripts/record_decision.py "
                 f"--approval-id {gate.id} "

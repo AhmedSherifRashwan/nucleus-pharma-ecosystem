@@ -127,13 +127,35 @@ comes back — the stage, which specialists have returned, and anything blocking
 then poll again. A run takes tens of minutes, so tell the user that and keep going
 rather than waiting in silence.
 
-When the status shows `awaiting_decision`, put the question to the user in your own
-words, wait for their answer, and only then run the command in its `how_to_answer`
-field. Never answer a gate on the user's behalf.
+When the status shows `awaiting_decision`, put the question to the user and wait
+for their answer. Never answer a gate on their behalf.
+
+**At the plan gate, show the plan.** The status output carries `plan.workstreams`:
+every task, the specialist assigned to it, what it is asked to produce, and what it
+waits for. Print it — one line per workstream, in order:
+
+> **T01** · Regulatory Intelligence Expert — establish the FDA ANDA and EU CTD basis
+> **T03** · Analytical Development Expert — analytical framework *(waits for T01)*
+
+A reader approving nine workstreams is entitled to see the nine. A count and a
+category list is not the plan, and they cannot judge whether the right specialists
+were chosen from it. Include `plan.rationale` if present, and any
+`plan.information_gaps` the planner already knows about.
+
+Then ask. Only after they answer, run the command in `how_to_answer`.
 
 When it shows `finished`, report the outcome and give the paths under `reports`.
 Those are files on this machine; say where they are rather than trying to attach
 them.
+
+A completed run produces four documents, and the user should be told what each is
+for rather than handed four filenames:
+
+- **Technical Report** — the full analysis, evidence and references.
+- **Executive Decision Brief** — the short read for a decision-maker.
+- **Technical Summary and Action List** — what to do next, in order, with owners.
+- **Agent Trail and Audit Record** — what each specialist reported, what the
+  independent review challenged, what was corrected and what remains unresolved.
 
 ## What to tell the user
 

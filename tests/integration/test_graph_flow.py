@@ -390,13 +390,17 @@ async def test_a_completed_run_produces_a_report_artifact(monkeypatch):
 
     assert final["status"] == "complete"
     paths = [Path(p) for p in (final.get("report_paths") or [])]
-    # Three deliverables: the detailed report, the decision brief, and the
-    # technical summary with its action list.
-    assert len(paths) == 3
+    # Four deliverables: the detailed report, the decision brief, the technical
+    # summary with its action list, and the agent trail.
+    assert len(paths) == 4
     assert all(p.is_file() and p.suffix == ".docx" for p in paths)
-    assert any("Technical_Report" in p.name for p in paths)
-    assert any("Executive_Decision_Brief" in p.name for p in paths)
-    assert any("Technical_Summary_and_Actions" in p.name for p in paths)
+    for expected in (
+        "Technical_Report",
+        "Executive_Decision_Brief",
+        "Technical_Summary_and_Actions",
+        "Agent_Trail_and_Audit",
+    ):
+        assert any(expected in p.name for p in paths), expected
     assert all(p.name.endswith("_v1.docx") for p in paths)
     # The filename carries the subject, not the Slack channel and timestamp.
     assert not any(p.name.startswith("Slack_") for p in paths)
@@ -406,7 +410,7 @@ async def test_a_completed_run_produces_a_report_artifact(monkeypatch):
             a for a in await ArtifactRepository(s).list_for_run(run_id) if a.kind == "report"
         ]
         events = await AuditRepository(s).event_types_for_run(run_id)
-    assert sorted(a.version for a in artifacts) == [1, 1, 1]
+    assert sorted(a.version for a in artifacts) == [1, 1, 1, 1]
     assert "report.generated" in events
 
 
@@ -425,9 +429,11 @@ async def test_a_failed_composition_still_delivers_the_brief(monkeypatch):
     final = await app.ainvoke(initial(run_id, run_ref), config=config(run_id))
 
     paths = [Path(p) for p in (final.get("report_paths") or [])]
-    assert len(paths) == 1
-    assert paths[0].is_file()
-    assert "Executive_Decision_Brief" in paths[0].name
+    # The brief, and the agent trail that says why the rest is missing.
+    assert len(paths) == 2
+    assert all(p.is_file() for p in paths)
+    assert any("Executive_Decision_Brief" in p.name for p in paths)
+    assert any("Agent_Trail_and_Audit" in p.name for p in paths)
     warnings = final.get("report_warnings") or []
     assert any("could not be composed" in w for w in warnings)
     # The run is not reported as clean when its deliverable was degraded.
@@ -559,3 +565,22 @@ async def test_run_resumes_after_a_restart(monkeypatch):
     )
     assert final["status"] == "complete"
     assert len(gw.specialist_calls) == 4
+
+
+async def test_the_agent_trail_ships_even_when_composition_fails(monkeypatch):
+    """It is the record of what happened, and that is most wanted when something
+    went wrong — so it is rendered from the database, with no model call."""
+    run_id, run_ref = await make_run()
+    gw = FakeGateway(
+        four_task_plan(),
+        results_by_marker=DEFAULT_RESULTS,
+        executive_brief=brief(decisions_required_from_user=[]),
+        fail_schemas={"ReportOutline"},
+    )
+    wire(monkeypatch, gw)
+
+    app = compile_graph(InMemorySaver())
+    final = await app.ainvoke(initial(run_id, run_ref), config=config(run_id))
+
+    paths = [Path(p) for p in (final.get("report_paths") or [])]
+    assert any("Agent_Trail_and_Audit" in p.name for p in paths), [p.name for p in paths]

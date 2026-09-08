@@ -579,3 +579,36 @@ reasoning — so the list can be worked top to bottom and each line traced back.
 
 *It cannot cost the report.* A failed summary is a warning; the report and the brief
 still ship. A summary that invented work nobody agreed to would be worse than none.
+
+
+### D-031 · The agent trail is a document, rendered from the record
+Replacing the old brief-only builder removed something nobody had named as a
+requirement: the per-agent view of what each specialist reported, what the review
+challenged, and what was corrected. The technical report deliberately does not carry
+that — it is the conclusion, not the route to it — so the view was simply lost.
+
+*Decision:* `app/reports/audit_builder.py` renders it from PostgreSQL with **no model
+call**: the timeline, the workstreams as planned and executed, every specialist's
+findings tagged fact / inference / assumption / estimate with their evidence ids,
+assumptions, risks, escalations, the conflicts between specialists and which remain
+open, superseded drafts and their replacements, the evidence register and the human
+decisions.
+
+Determinism matters twice here. The record cannot be paraphrased on its way to the
+page — and the document ships even when composition fails, which is exactly the run
+somebody needs it for. A test drives that path: composition is failed deliberately
+and the trail must still be delivered.
+
+Every delivered document now carries its own sha256, whichever document it is: a file
+a client holds must be traceable to the run that produced it.
+
+
+### D-032 · The plan is shown, not summarised
+At the approval gate the Control UI showed a count and a list of categories — "9
+workstreams covering regulatory basis, product evidence, ..." — which is not enough
+to judge whether the right specialists were chosen.
+
+`run_status.py` now returns the plan itself: every workstream, the specialist
+assigned, what it must produce, and what it waits for. The skill is instructed to
+print that list before asking for approval. A person asked to approve nine
+workstreams is entitled to see the nine.

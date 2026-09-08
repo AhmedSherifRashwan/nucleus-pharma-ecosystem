@@ -71,6 +71,9 @@ class ReportResult:
     filename: str
     version: int
     sha256: str
+    # Documents rendered alongside this one — the agent trail, a PDF. Carried on
+    # the result so a caller cannot deliver the report and silently drop them.
+    extra_paths: list[Path] = field(default_factory=list)
     template_version: str = TEMPLATE_VERSION
     generator_version: str = GENERATOR_VERSION
 

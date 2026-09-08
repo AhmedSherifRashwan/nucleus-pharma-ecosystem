@@ -1,13 +1,13 @@
 ---
 name: pharma-ecosystem
-description: Launch a Neucleus pharmaceutical analysis run for generic oral softgel development — portfolio, regulatory, QTPP, QbD, formulation, analytical, stability, process, validation, QC or QA work. Use when the user asks for an assessment, investigation, report or recommendation in that domain.
+description: Launch a Nucleus pharmaceutical analysis run for generic oral softgel development — portfolio, regulatory, QTPP, QbD, formulation, analytical, stability, process, validation, QC or QA work. Use when the user asks for an assessment, investigation, report or recommendation in that domain.
 metadata:
-  short-description: Launch a Neucleus specialist analysis run
+  short-description: Launch a Nucleus specialist analysis run
 ---
 
-# Neucleus — Pharma Ecosystem Launcher
+# Nucleus — Pharma Ecosystem Launcher
 
-Turn a request into a durable, tracked run executed by the Neucleus orchestrator.
+Turn a request into a durable, tracked run executed by the Nucleus orchestrator.
 
 **Your only job is to launch the run and acknowledge it.** Do not attempt the
 pharmaceutical analysis yourself. Sixteen specialist profiles, an executive
@@ -23,7 +23,7 @@ control strategy, formulation (shell, fill, excipients), analytical methods,
 stability and shelf life, process development and scale-up, validation, quality
 control, or quality assurance.
 
-Do **not** use it for small talk, questions about Neucleus itself, or requests
+Do **not** use it for small talk, questions about Nucleus itself, or requests
 outside pharmaceutical development.
 
 ## Three ways a request arrives
@@ -71,7 +71,7 @@ nearest ones rather than picking one for them.
 Run the enqueue script with the request and its Slack context:
 
 ```bash
-cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
+cd "{{NUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
   --request "<the user's request verbatim>" \
   --channel "<slack channel id>" \
   --thread "<slack thread ts>" \
@@ -117,7 +117,7 @@ report it instead.
 After launching, poll:
 
 ```bash
-cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/run_status.py \
+cd "{{NUCLEUS_ROOT}}" && uv run python scripts/run_status.py \
   --run-ref RUN-2026-0042 --wait 600
 ```
 

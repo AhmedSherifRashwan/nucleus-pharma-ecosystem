@@ -23,7 +23,7 @@ from app.agents.registry import AgentRegistry, load_registry
 from app.schemas.agent import AgentProfile
 
 SKILLS_ROOT = Path("openclaw/workspace/skills")
-SKILL_PREFIX = "neucleus"
+SKILL_PREFIX = "nucleus"
 
 GENERATED_BANNER = (
     "<!-- GENERATED FILE - DO NOT EDIT.\n"
@@ -129,7 +129,7 @@ def generate(check_only: bool = False) -> int:
 
     # A profile removed from the registry must not leave a stale skill behind.
     # Only directories this script generated are considered: hand-written skills
-    # under the same prefix (neucleus-tools, for instance) are left alone.
+    # under the same prefix (nucleus-tools, for instance) are left alone.
     for existing in SKILLS_ROOT.glob(f"{SKILL_PREFIX}-*"):
         if not existing.is_dir() or existing in expected_dirs:
             continue

@@ -1,6 +1,6 @@
 ---
 name: quality_assurance
-description: Send one task directly to the Quality Assurance Expert (A14) — the Neucleus specialist for Govern the Pharmaceutical Quality System and provide independent GMP oversight across development, manufacture,.... Use when the user names this specialist with /quality_assurance, or asks for this specialist by name.
+description: Send one task directly to the Quality Assurance Expert (A14) — the Nucleus specialist for Govern the Pharmaceutical Quality System and provide independent GMP oversight across development, manufacture,.... Use when the user names this specialist with /quality_assurance, or asks for this specialist by name.
 metadata:
   short-description: Ask the Quality Assurance Expert a single question
 ---
@@ -21,7 +21,7 @@ Govern the Pharmaceutical Quality System and provide independent GMP oversight a
 ## How to launch
 
 ```bash
-cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
+cd "{{NUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
   --request "<the user's task, verbatim, without the slash command>" \
   --agent A14 \
   --channel "<slack channel id>" \

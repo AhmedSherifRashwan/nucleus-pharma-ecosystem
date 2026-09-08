@@ -1,6 +1,6 @@
 ---
 name: regulatory_submission
-description: Send one task directly to the Regulatory Submission Agent (A16) — the Neucleus specialist for Coordinate regulatory submission packages such as ANDA, eCTD and EMA submissions. Use when the user names this specialist with /regulatory_submission, or asks for this specialist by name.
+description: Send one task directly to the Regulatory Submission Agent (A16) — the Nucleus specialist for Coordinate regulatory submission packages such as ANDA, eCTD and EMA submissions. Use when the user names this specialist with /regulatory_submission, or asks for this specialist by name.
 metadata:
   short-description: Ask the Regulatory Submission Agent a single question
 ---
@@ -21,7 +21,7 @@ Coordinate regulatory submission packages such as ANDA, eCTD and EMA submissions
 ## How to launch
 
 ```bash
-cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
+cd "{{NUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
   --request "<the user's task, verbatim, without the slash command>" \
   --agent A16 \
   --channel "<slack channel id>" \

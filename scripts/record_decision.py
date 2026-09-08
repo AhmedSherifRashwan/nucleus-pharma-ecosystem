@@ -163,7 +163,7 @@ async def record(
 
 
 async def main() -> int:
-    parser = argparse.ArgumentParser(description="Record a Neucleus approval decision.")
+    parser = argparse.ArgumentParser(description="Record a Nucleus approval decision.")
     parser.add_argument("--approval-id", required=True, help="the button's value")
     parser.add_argument("--action", required=True, help=f"one of {sorted(ACTIONS)}")
     parser.add_argument("--user", required=True, help="Slack user id of the decider")

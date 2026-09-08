@@ -1,6 +1,6 @@
 ---
 name: shell_formulation
-description: Send one task directly to the Softgel Shell Formulation Expert (A07) — the Neucleus specialist for Design, optimise and lifecycle-manage softgel shell formulations that meet QTPP, manufacturing, stability and.... Use when the user names this specialist with /shell_formulation, or asks for this specialist by name.
+description: Send one task directly to the Softgel Shell Formulation Expert (A07) — the Nucleus specialist for Design, optimise and lifecycle-manage softgel shell formulations that meet QTPP, manufacturing, stability and.... Use when the user names this specialist with /shell_formulation, or asks for this specialist by name.
 metadata:
   short-description: Ask the Softgel Shell Formulation Expert a single question
 ---
@@ -21,7 +21,7 @@ Design, optimise and lifecycle-manage softgel shell formulations that meet QTPP,
 ## How to launch
 
 ```bash
-cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
+cd "{{NUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
   --request "<the user's task, verbatim, without the slash command>" \
   --agent A07 \
   --channel "<slack channel id>" \

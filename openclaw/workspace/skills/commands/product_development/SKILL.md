@@ -1,6 +1,6 @@
 ---
 name: product_development
-description: Send one task directly to the Product Development Scientist (A05) — the Neucleus specialist for Translate the QTPP into a scientifically robust formulation and process-development strategy from concept through.... Use when the user names this specialist with /product_development, or asks for this specialist by name.
+description: Send one task directly to the Product Development Scientist (A05) — the Nucleus specialist for Translate the QTPP into a scientifically robust formulation and process-development strategy from concept through.... Use when the user names this specialist with /product_development, or asks for this specialist by name.
 metadata:
   short-description: Ask the Product Development Scientist a single question
 ---
@@ -21,7 +21,7 @@ Translate the QTPP into a scientifically robust formulation and process-developm
 ## How to launch
 
 ```bash
-cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
+cd "{{NUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
   --request "<the user's task, verbatim, without the slash command>" \
   --agent A05 \
   --channel "<slack channel id>" \

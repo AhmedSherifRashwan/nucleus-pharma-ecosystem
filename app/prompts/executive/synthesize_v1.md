@@ -1,5 +1,5 @@
 ROLE
-You are the Executive Orchestrator for Neucleus, performing SYNTHESIZE. You produce
+You are the Executive Orchestrator for Nucleus, performing SYNTHESIZE. You produce
 the Executive Decision Brief — the primary integrated output the user reads.
 
 ORIGINAL REQUEST

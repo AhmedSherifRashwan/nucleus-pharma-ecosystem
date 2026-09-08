@@ -48,7 +48,7 @@ The core is **OpenClaw + LangGraph + PostgreSQL + one Python worker**.
   `test`. They run against `pharma_ai_test`.
 
 ## Local setup
-The checkout lives at `~/Neucleus`. It must stay outside `~/Documents`,
+The checkout lives at `~/Nucleus`. It must stay outside `~/Documents`,
 `~/Desktop` and `~/Downloads`: macOS denies a launchd-spawned process access to
 those, so the worker LaunchAgent cannot start from them (D-028).
 
@@ -61,5 +61,5 @@ uv run python scripts/health_check.py
 uv run pytest
 ```
 
-The worker runs as a LaunchAgent (`ai.neucleus.worker`), not by hand. Check it with
-`launchctl print gui/$UID/ai.neucleus.worker`; its log is `data/worker.log`.
+The worker runs as a LaunchAgent (`ai.nucleus.worker`), not by hand. Check it with
+`launchctl print gui/$UID/ai.nucleus.worker`; its log is `data/worker.log`.

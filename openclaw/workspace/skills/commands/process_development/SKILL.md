@@ -1,6 +1,6 @@
 ---
 name: process_development
-description: Send one task directly to the Process Development Expert (A11) — the Neucleus specialist for Translate laboratory formulations into robust, scalable, commercially manufacturable softgel processes and define.... Use when the user names this specialist with /process_development, or asks for this specialist by name.
+description: Send one task directly to the Process Development Expert (A11) — the Nucleus specialist for Translate laboratory formulations into robust, scalable, commercially manufacturable softgel processes and define.... Use when the user names this specialist with /process_development, or asks for this specialist by name.
 metadata:
   short-description: Ask the Process Development Expert a single question
 ---
@@ -21,7 +21,7 @@ Translate laboratory formulations into robust, scalable, commercially manufactur
 ## How to launch
 
 ```bash
-cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
+cd "{{NUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
   --request "<the user's task, verbatim, without the slash command>" \
   --agent A11 \
   --channel "<slack channel id>" \

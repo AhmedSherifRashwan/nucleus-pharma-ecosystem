@@ -1,4 +1,4 @@
-"""The Neucleus job worker (PRD s31, Phase 10).
+"""The Nucleus job worker (PRD s31, Phase 10).
 
 A single supervised process claims queued jobs and executes the LangGraph run.
 Long multi-specialist work never runs inside a Slack handler or the OpenClaw

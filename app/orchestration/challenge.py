@@ -28,7 +28,7 @@ from app.schemas.specialist import SpecialistResult
 log = get_logger(__name__)
 
 CHALLENGE_SYSTEM = (
-    "You are the Executive Orchestrator for Neucleus performing adversarial review. "
+    "You are the Executive Orchestrator for Nucleus performing adversarial review. "
     "Your job is to find contradictions, unsupported claims and missing perspectives "
     "before a recommendation reaches a human. Agreement between specialists is not "
     "evidence."

@@ -74,7 +74,7 @@ async def repost(run_ref: str) -> dict:
 
 
 async def main() -> int:
-    parser = argparse.ArgumentParser(description="Re-post a pending Neucleus approval gate.")
+    parser = argparse.ArgumentParser(description="Re-post a pending Nucleus approval gate.")
     parser.add_argument("--run-ref", required=True)
     args = parser.parse_args()
 

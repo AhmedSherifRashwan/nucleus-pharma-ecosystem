@@ -1,4 +1,4 @@
-"""Slack Block Kit rendering for Neucleus (PRD s17).
+"""Slack Block Kit rendering for Nucleus (PRD s17).
 
 One bot identity. The ecosystem presents as a single assistant that can show
 which specialists it consulted, never as sixteen bots.
@@ -32,7 +32,7 @@ CONFIDENCE_LABEL = {
 }
 
 DISCLAIMER = (
-    "_Neucleus produces AI-generated analysis to support a human decision. "
+    "_Nucleus produces AI-generated analysis to support a human decision. "
     "It is not a regulatory approval, GMP release, validated state, compliance "
     "sign-off or legal advice._"
 )
@@ -202,7 +202,7 @@ def decision_request(
         section(f":lock: *{run_ref} — {cls.upper()} decision required*\n{brief.recommendation}"),
         section(f"*Decisions needed from you*\n{questions}"),
         context(
-            "Neucleus has prepared this recommendation but will not act on it. "
+            "Nucleus has prepared this recommendation but will not act on it. "
             "A named human must decide."
         ),
         {

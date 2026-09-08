@@ -122,7 +122,7 @@ def build_task_message(task: TaskEnvelope, profile: AgentProfile) -> str:
             "",
             "Available to you: " + ", ".join(task.allowed_tools),
             "",
-            "Invoke them through the neucleus-tools skill, for example:",
+            "Invoke them through the nucleus-tools skill, for example:",
             "  uv run python -m app.tools.cli calculator "
             f'--context "{task.tool_context}" --expression "250 / 800 * 100"',
             "",

@@ -1,6 +1,6 @@
 ---
 name: analytical_development
-description: Send one task directly to the Analytical Development Expert (A09) — the Neucleus specialist for Design, optimise, validate and maintain analytical methods supporting development, process, stability, release and.... Use when the user names this specialist with /analytical_development, or asks for this specialist by name.
+description: Send one task directly to the Analytical Development Expert (A09) — the Nucleus specialist for Design, optimise, validate and maintain analytical methods supporting development, process, stability, release and.... Use when the user names this specialist with /analytical_development, or asks for this specialist by name.
 metadata:
   short-description: Ask the Analytical Development Expert a single question
 ---
@@ -21,7 +21,7 @@ Design, optimise, validate and maintain analytical methods supporting developmen
 ## How to launch
 
 ```bash
-cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
+cd "{{NUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
   --request "<the user's task, verbatim, without the slash command>" \
   --agent A09 \
   --channel "<slack channel id>" \

@@ -25,7 +25,7 @@ from app.schemas.planning import Plan, RunBudget
 log = get_logger(__name__)
 
 PLANNER_SYSTEM = (
-    "You are the Executive Orchestrator for Neucleus, a control plane for a "
+    "You are the Executive Orchestrator for Nucleus, a control plane for a "
     "specialist AI ecosystem in generic oral softgel pharmaceutical development. "
     "You plan and coordinate; you never perform the specialist analysis yourself."
 )

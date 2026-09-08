@@ -1,6 +1,6 @@
 ---
 name: qtpp
-description: Send one task directly to the QTPP Expert / Director (A03) — the Neucleus specialist for Create, govern and maintain the master Quality Target Product Profile and keep quality objectives aligned across.... Use when the user names this specialist with /qtpp, or asks for this specialist by name.
+description: Send one task directly to the QTPP Expert / Director (A03) — the Nucleus specialist for Create, govern and maintain the master Quality Target Product Profile and keep quality objectives aligned across.... Use when the user names this specialist with /qtpp, or asks for this specialist by name.
 metadata:
   short-description: Ask the QTPP Expert / Director a single question
 ---
@@ -21,7 +21,7 @@ Create, govern and maintain the master Quality Target Product Profile and keep q
 ## How to launch
 
 ```bash
-cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
+cd "{{NUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
   --request "<the user's task, verbatim, without the slash command>" \
   --agent A03 \
   --channel "<slack channel id>" \

@@ -1,13 +1,13 @@
 {
   "display_information": {
-    "name": "Neucleus",
+    "name": "Nucleus",
     "description": "Specialist AI ecosystem for generic oral softgel development.",
     "background_color": "#1a2332",
-    "long_description": "Neucleus converts a request in Slack into a controlled programme of work across a network of specialist pharmaceutical AI agents. It plans the work, runs the relevant specialists, challenges contradictions between them, and returns an Executive Decision Brief plus a DOCX report. Every run, evidence item, assumption, conflict and human decision is persisted for traceability. Neucleus is advisory: it never executes a regulatory submission, batch release or any other binding action without explicit human approval."
+    "long_description": "Nucleus converts a request in Slack into a controlled programme of work across a network of specialist pharmaceutical AI agents. It plans the work, runs the relevant specialists, challenges contradictions between them, and returns an Executive Decision Brief plus a DOCX report. Every run, evidence item, assumption, conflict and human decision is persisted for traceability. Nucleus is advisory: it never executes a regulatory submission, batch release or any other binding action without explicit human approval."
   },
   "features": {
     "bot_user": {
-      "display_name": "Neucleus",
+      "display_name": "Nucleus",
       "always_online": true
     },
     "app_home": {

@@ -70,7 +70,7 @@ async def regenerate(run_ref: str, *, output_dir: str | None = None) -> dict:
 
 
 async def main() -> int:
-    parser = argparse.ArgumentParser(description="Re-generate a Neucleus report.")
+    parser = argparse.ArgumentParser(description="Re-generate a Nucleus report.")
     parser.add_argument("--run-ref", required=True)
     parser.add_argument("--output-dir", help="write elsewhere than the configured path")
     args = parser.parse_args()

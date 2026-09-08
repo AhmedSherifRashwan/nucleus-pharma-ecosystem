@@ -1,6 +1,6 @@
 ---
 name: gmp_compliance
-description: Send one task directly to the GMP Compliance Agent (A15) — the Neucleus specialist for Assess FDA 21 CFR and EU GMP compliance across development and manufacturing activities. Use when the user names this specialist with /gmp_compliance, or asks for this specialist by name.
+description: Send one task directly to the GMP Compliance Agent (A15) — the Nucleus specialist for Assess FDA 21 CFR and EU GMP compliance across development and manufacturing activities. Use when the user names this specialist with /gmp_compliance, or asks for this specialist by name.
 metadata:
   short-description: Ask the GMP Compliance Agent a single question
 ---
@@ -21,7 +21,7 @@ Assess FDA 21 CFR and EU GMP compliance across development and manufacturing act
 ## How to launch
 
 ```bash
-cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
+cd "{{NUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
   --request "<the user's task, verbatim, without the slash command>" \
   --agent A15 \
   --channel "<slack channel id>" \

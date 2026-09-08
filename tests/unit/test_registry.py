@@ -218,7 +218,7 @@ def test_every_prompt_composes_without_placeholders(full):
 
 def test_prompt_states_the_ecosystem_name(full):
     prompt = compose_worker_prompt(full.get("A01"), full.domain_prompt("A01"))
-    assert "Neucleus" in prompt
+    assert "Nucleus" in prompt
 
 
 def test_prompt_carries_the_evidence_basis_rule(full):

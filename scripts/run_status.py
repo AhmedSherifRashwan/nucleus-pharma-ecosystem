@@ -152,7 +152,7 @@ async def status(run_ref: str) -> dict:
 
 
 async def main() -> int:
-    parser = argparse.ArgumentParser(description="Report the state of a Neucleus run.")
+    parser = argparse.ArgumentParser(description="Report the state of a Nucleus run.")
     parser.add_argument("--run-ref", help="e.g. RUN-2026-0009")
     parser.add_argument("--latest", action="store_true", help="the most recent run")
     parser.add_argument(

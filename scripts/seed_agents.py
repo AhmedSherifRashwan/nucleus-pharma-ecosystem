@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import re
 import sys
 from pathlib import Path
 
@@ -87,26 +88,32 @@ async def seed() -> int:
                 )
                 return 1
 
-        # Shared prompts.
+        # Shared prompts. The version is declared in the file so it travels with
+        # the content it versions: a seeder-side constant drifts from the text.
         shared = [("workers/common", Path(settings.worker_prompts_path) / "common_v1.md")]
         for name, path in shared:
             if not path.is_file():
                 continue
             content = path.read_text(encoding="utf-8")
             digest = hashlib.sha256(content.encode()).hexdigest()
+            version = prompt_version(content)
             existing = await session.scalar(
                 select(PromptVersion).where(
-                    PromptVersion.name == name, PromptVersion.version == "1.0.0"
+                    PromptVersion.name == name, PromptVersion.version == version
                 )
             )
             if existing is None:
                 session.add(
-                    PromptVersion(name=name, version="1.0.0", content=content, sha256=digest)
+                    PromptVersion(name=name, version=version, content=content, sha256=digest)
                 )
                 prompts_created += 1
             elif existing.sha256 != digest:
+                # A recorded version is immutable: a specialist result cites the
+                # prompt that produced it, so editing one in place would make the
+                # audit trail describe work that never happened.
                 print(
-                    f"ERROR: shared prompt '{name}' v1.0.0 changed without a version bump.",
+                    f"ERROR: shared prompt '{name}' v{version} changed without a version "
+                    f"bump. Edit the '<!-- version: -->' line at the top of {path.name}.",
                     file=sys.stderr,
                 )
                 return 1
@@ -121,6 +128,15 @@ async def seed() -> int:
         f"Seeded: {created} new profiles, {updated} updated, {prompts_created} new prompt versions."
     )
     return 0
+
+
+PROMPT_VERSION = re.compile(r"<!--\s*version:\s*([0-9]+\.[0-9]+\.[0-9]+)\s*-->")
+
+
+def prompt_version(content: str, default: str = "1.0.0") -> str:
+    """The version declared at the top of a prompt file."""
+    match = PROMPT_VERSION.search(content[:200])
+    return match.group(1) if match else default
 
 
 async def main() -> int:

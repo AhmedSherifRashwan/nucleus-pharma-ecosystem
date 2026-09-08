@@ -92,11 +92,11 @@ account-level risk, not a technical one.
 No dedicated client SDS exists for GMP Compliance or Regulatory Submission (§11).
 They stayed disabled until the client instructed otherwise on 6 September 2026.
 
-### D-009 · Ecosystem name is **Neucleus**
-*Decision (user, 4 Sep 2026):* the assistant is `@neucleus`, not PharmaAI. Applied
+### D-009 · Ecosystem name is **Nucleus**
+*Decision (user, 4 Sep 2026):* the assistant is `@nucleus`, not PharmaAI. Applied
 to `app/prompts/workers/common_v1.md`; the Slack app display name follows in Phase 9.
 
-*Open:* the standard English spelling is "nucleus". `@neucleus` is used exactly as
+*Open:* the standard English spelling is "nucleus". `@nucleus` is used exactly as
 given. Confirm before the Slack app is created — a bot handle is user-visible and
 awkward to change later.
 
@@ -382,7 +382,7 @@ decision gate after synthesis is untouched.
 
 *Consequences:* the routing prefix never reaches the specialist, and an unknown
 command is treated as an ordinary request rather than guessed at. Slash commands
-are registered in the Slack manifest, one per enabled specialist plus `/neucleus`;
+are registered in the Slack manifest, one per enabled specialist plus `/nucleus`;
 the same words typed in a mention work without them.
 
 
@@ -474,8 +474,8 @@ that it is said where a reader will read it.
 Talking to the general-purpose `main` agent meant saying "use the pharma ecosystem"
 every time. A client should not have to know the name of the thing they are using.
 
-*Decision:* a `neucleus` agent whose only purpose is the ecosystem. Its standing
-instructions live in the repository (`openclaw/workspace/agent-neucleus/`) and are
+*Decision:* a `nucleus` agent whose only purpose is the ecosystem. Its standing
+instructions live in the repository (`openclaw/workspace/agent-nucleus/`) and are
 installed with the skills, so what it will and will not do is reviewed with the code
 rather than edited in place on the machine.
 
@@ -529,7 +529,7 @@ runs enqueued with nothing executing, silently. Making it a LaunchAgent failed w
 `Operation not permitted`: macOS TCC denies a launchd-spawned process access to
 `~/Documents`, `~/Desktop` and `~/Downloads` whatever the file permissions say.
 
-*Decision:* the checkout is `~/Neucleus`. `bootstrap.py` detects a TCC-protected
+*Decision:* the checkout is `~/Nucleus`. `bootstrap.py` detects a TCC-protected
 location and refuses to install a service that cannot start, saying what to do
 instead — a service that fails silently on every boot is worse than none.
 

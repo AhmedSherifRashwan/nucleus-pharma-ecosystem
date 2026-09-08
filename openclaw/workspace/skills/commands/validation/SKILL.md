@@ -1,6 +1,6 @@
 ---
 name: validation
-description: Send one task directly to the Validation Expert (A12) — the Neucleus specialist for Design, coordinate and maintain validation throughout the product lifecycle across equipment, utilities, analytical.... Use when the user names this specialist with /validation, or asks for this specialist by name.
+description: Send one task directly to the Validation Expert (A12) — the Nucleus specialist for Design, coordinate and maintain validation throughout the product lifecycle across equipment, utilities, analytical.... Use when the user names this specialist with /validation, or asks for this specialist by name.
 metadata:
   short-description: Ask the Validation Expert a single question
 ---
@@ -21,7 +21,7 @@ Design, coordinate and maintain validation throughout the product lifecycle acro
 ## How to launch
 
 ```bash
-cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
+cd "{{NUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
   --request "<the user's task, verbatim, without the slash command>" \
   --agent A12 \
   --channel "<slack channel id>" \

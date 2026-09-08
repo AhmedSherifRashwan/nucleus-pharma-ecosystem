@@ -1,6 +1,6 @@
 ---
 name: qbd
-description: Send one task directly to the Quality by Design (QbD) Expert (A04) — the Neucleus specialist for Translate the approved QTPP into a science- and risk-based development strategy under Quality by Design principles. Use when the user names this specialist with /qbd, or asks for this specialist by name.
+description: Send one task directly to the Quality by Design (QbD) Expert (A04) — the Nucleus specialist for Translate the approved QTPP into a science- and risk-based development strategy under Quality by Design principles. Use when the user names this specialist with /qbd, or asks for this specialist by name.
 metadata:
   short-description: Ask the Quality by Design (QbD) Expert a single question
 ---
@@ -21,7 +21,7 @@ Translate the approved QTPP into a science- and risk-based development strategy 
 ## How to launch
 
 ```bash
-cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
+cd "{{NUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
   --request "<the user's task, verbatim, without the slash command>" \
   --agent A04 \
   --channel "<slack channel id>" \

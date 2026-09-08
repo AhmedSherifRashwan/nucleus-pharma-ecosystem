@@ -1,6 +1,6 @@
 ---
 name: stability
-description: Send one task directly to the Stability Studies Expert (A10) — the Neucleus specialist for Design, govern and interpret stability programmes across the lifecycle and support shelf-life and storage-condition.... Use when the user names this specialist with /stability, or asks for this specialist by name.
+description: Send one task directly to the Stability Studies Expert (A10) — the Nucleus specialist for Design, govern and interpret stability programmes across the lifecycle and support shelf-life and storage-condition.... Use when the user names this specialist with /stability, or asks for this specialist by name.
 metadata:
   short-description: Ask the Stability Studies Expert a single question
 ---
@@ -21,7 +21,7 @@ Design, govern and interpret stability programmes across the lifecycle and suppo
 ## How to launch
 
 ```bash
-cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
+cd "{{NUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
   --request "<the user's task, verbatim, without the slash command>" \
   --agent A10 \
   --channel "<slack channel id>" \

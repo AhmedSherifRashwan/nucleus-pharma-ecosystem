@@ -60,14 +60,14 @@
         "name": "main",
         "workspace": "${HOME}/.openclaw/workspace"
       },
-      "neucleus": {
-        "agentDir": "${HOME}/.openclaw/agents/neucleus/agent",
+      "nucleus": {
+        "agentDir": "${HOME}/.openclaw/agents/nucleus/agent",
         "identity": {
-          "name": "neucleus"
+          "name": "nucleus"
         },
         "model": "openai/gpt-5.6-sol",
-        "name": "neucleus",
-        "workspace": "${HOME}/.openclaw/workspaces/neucleus"
+        "name": "nucleus",
+        "workspace": "${HOME}/.openclaw/workspaces/nucleus"
       },
       "pharma-executive": {
         "agentDir": "${HOME}/.openclaw/agents/pharma-executive/agent",
@@ -97,13 +97,6 @@
         "accountId": "*",
         "channel": "slack"
       }
-    },
-    {
-      "agentId": "neucleus",
-      "match": {
-        "channel": "slack"
-      },
-      "type": "route"
     }
   ],
   "channels": {

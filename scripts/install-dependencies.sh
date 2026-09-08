@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# System-level dependencies for the Neucleus pharmaceutical multi-agent system.
+# System-level dependencies for the Nucleus pharmaceutical multi-agent system.
 #
 # Scope is deliberately narrow: this brings a clean macOS machine to the point
 # where `uv run python scripts/bootstrap.py` can run. Anything project-specific

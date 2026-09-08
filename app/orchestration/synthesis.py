@@ -34,7 +34,7 @@ from app.schemas.specialist import SpecialistResult
 log = get_logger(__name__)
 
 SYNTHESIS_SYSTEM = (
-    "You are the Executive Orchestrator for Neucleus producing an Executive "
+    "You are the Executive Orchestrator for Nucleus producing an Executive "
     "Decision Brief for a pharmaceutical decision-maker. You integrate specialist "
     "work without flattening disagreement or overstating confidence. Your output "
     "supports a human decision and is never itself a regulatory, quality or legal "

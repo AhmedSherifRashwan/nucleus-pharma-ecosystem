@@ -1,8 +1,8 @@
-# Using Neucleus from Slack
+# Using Nucleus from Slack
 
 Mention the bot in an approved channel with your request:
 
-> @neucleus Our softgel dissolution is slowing at the 6-month accelerated
+> @nucleus Our softgel dissolution is slowing at the 6-month accelerated
 > timepoint. The fill is PEG 400 with polysorbate 80. What is happening?
 
 ## What happens next
@@ -16,7 +16,7 @@ Mention the bot in an approved channel with your request:
 
 ## Approvals
 
-Neucleus stops and asks when a request touches a regulated decision — batch
+Nucleus stops and asks when a request touches a regulated decision — batch
 release, a submission, shelf-life assignment, compliance sign-off — or when the
 recommendation itself is AMBER or RED. It will prepare and recommend; it never
 executes those decisions.

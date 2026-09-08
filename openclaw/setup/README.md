@@ -1,4 +1,4 @@
-# Slack app setup for Neucleus
+# Slack app setup for Nucleus
 
 Create the Slack app from a manifest rather than clicking through the UI. Every
 scope and setting here is derived from what `@openclaw/slack` v2026.9.1 actually
@@ -8,7 +8,7 @@ uses, filtered to what PRD §17 needs, under the §2 least-privilege rule.
 
 | File | Use when |
 |------|----------|
-| `slack-app-manifest.json` | Neucleus lives in **public** channels. Start here. |
+| `slack-app-manifest.json` | Nucleus lives in **public** channels. Start here. |
 | `slack-app-manifest-private-channels.json` | You need it in **private** channels too. Adds `groups:history`, `groups:read`. |
 
 ## Create the app
@@ -32,10 +32,10 @@ The app-level token is shown once. Copy it immediately.
 
 ## Invite and configure
 
-In Slack, in the channel Neucleus should work in:
+In Slack, in the channel Nucleus should work in:
 
 ```
-/invite @neucleus
+/invite @nucleus
 ```
 
 Then:
@@ -51,7 +51,7 @@ offers it — §21 requires secrets to stay out of config files.
 
 | Scope | Needed for |
 |---|---|
-| `app_mentions:read` | Receiving `@neucleus` requests (§17.1) |
+| `app_mentions:read` | Receiving `@nucleus` requests (§17.1) |
 | `chat:write` | Plan previews, progress updates, the executive brief |
 | `channels:history` | Thread context for the §17.2 project/session mapping |
 | `channels:read` | Resolving channel metadata |

@@ -1,6 +1,6 @@
 ---
 name: portfolio_strategy
-description: Send one task directly to the Portfolio Strategy Agent (A01) — the Neucleus specialist for Entry gate to the generic oral softgel development programme: evaluate commercial, technical, regulatory,.... Use when the user names this specialist with /portfolio_strategy, or asks for this specialist by name.
+description: Send one task directly to the Portfolio Strategy Agent (A01) — the Nucleus specialist for Entry gate to the generic oral softgel development programme: evaluate commercial, technical, regulatory,.... Use when the user names this specialist with /portfolio_strategy, or asks for this specialist by name.
 metadata:
   short-description: Ask the Portfolio Strategy Agent a single question
 ---
@@ -21,7 +21,7 @@ Entry gate to the generic oral softgel development programme: evaluate commercia
 ## How to launch
 
 ```bash
-cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
+cd "{{NUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
   --request "<the user's task, verbatim, without the slash command>" \
   --agent A01 \
   --channel "<slack channel id>" \

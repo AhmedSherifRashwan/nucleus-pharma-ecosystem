@@ -1,6 +1,6 @@
 ---
 name: fill_formulation
-description: Send one task directly to the Fill Formulation Expert (A08) — the Neucleus specialist for Design, optimise and lifecycle-manage liquid, semi-solid or suspension fill formulations that meet QTPP,.... Use when the user names this specialist with /fill_formulation, or asks for this specialist by name.
+description: Send one task directly to the Fill Formulation Expert (A08) — the Nucleus specialist for Design, optimise and lifecycle-manage liquid, semi-solid or suspension fill formulations that meet QTPP,.... Use when the user names this specialist with /fill_formulation, or asks for this specialist by name.
 metadata:
   short-description: Ask the Fill Formulation Expert a single question
 ---
@@ -21,7 +21,7 @@ Design, optimise and lifecycle-manage liquid, semi-solid or suspension fill form
 ## How to launch
 
 ```bash
-cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
+cd "{{NUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
   --request "<the user's task, verbatim, without the slash command>" \
   --agent A08 \
   --channel "<slack channel id>" \

@@ -29,7 +29,7 @@ BANNER = (
 )
 
 DESCRIPTION = (
-    "Send one task directly to the {agent_name} ({agent_id}) — the Neucleus "
+    "Send one task directly to the {agent_name} ({agent_id}) — the Nucleus "
     "specialist for {purpose}. Use when the user names this specialist with "
     "/{name}, or asks for this specialist by name."
 )
@@ -55,7 +55,7 @@ stage, no other specialists: the user chose who should answer.
 ## How to launch
 
 ```bash
-cd "{{{{NEUCLEUS_ROOT}}}}" && uv run python scripts/enqueue_run.py \\
+cd "{{{{NUCLEUS_ROOT}}}}" && uv run python scripts/enqueue_run.py \\
   --request "<the user's task, verbatim, without the slash command>" \\
   --agent {agent_id} \\
   --channel "<slack channel id>" \\

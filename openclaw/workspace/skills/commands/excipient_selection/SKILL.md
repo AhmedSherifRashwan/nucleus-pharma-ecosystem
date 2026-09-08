@@ -1,6 +1,6 @@
 ---
 name: excipient_selection
-description: Send one task directly to the Excipient Selection Expert (A06) — the Neucleus specialist for Identify, evaluate, justify and maintain excipient selections that are scientifically appropriate, API-compatible,.... Use when the user names this specialist with /excipient_selection, or asks for this specialist by name.
+description: Send one task directly to the Excipient Selection Expert (A06) — the Nucleus specialist for Identify, evaluate, justify and maintain excipient selections that are scientifically appropriate, API-compatible,.... Use when the user names this specialist with /excipient_selection, or asks for this specialist by name.
 metadata:
   short-description: Ask the Excipient Selection Expert a single question
 ---
@@ -21,7 +21,7 @@ Identify, evaluate, justify and maintain excipient selections that are scientifi
 ## How to launch
 
 ```bash
-cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
+cd "{{NUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
   --request "<the user's task, verbatim, without the slash command>" \
   --agent A06 \
   --channel "<slack channel id>" \

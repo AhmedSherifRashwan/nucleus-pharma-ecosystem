@@ -59,7 +59,7 @@
   actions and escalation policy.
 - `app/agents/definitions/`: all 16 profiles. A01–A14 derived from their named
   client SDS; A15/A16 provisional with no source document.
-- `app/prompts/workers/`: shared prompt (naming the ecosystem **Neucleus**) plus 16
+- `app/prompts/workers/`: shared prompt (naming the ecosystem **Nucleus**) plus 16
   domain prompts.
 - `app/agents/registry.py`: loader that fails closed on an unknown tool, an AMBER/RED
   tool, an unknown knowledge scope, a missing prompt, an active profile with no
@@ -72,7 +72,7 @@
 - Every active profile names its SDS, and that file exists in the repo.
 - No profile holds an AMBER/RED tool, and no tool falls outside the §19 table.
 - The §12.1 routing matrix matches the PRD and drops disabled agents.
-- Every prompt composes with no placeholders, names Neucleus, states the
+- Every prompt composes with no placeholders, names Nucleus, states the
   untrusted-data boundary and carries the evidence-basis rule.
 - Seeding is idempotent, snapshots the whole profile, and refuses released-prompt drift.
 
@@ -159,7 +159,7 @@ Repository layer over the system of record. Orchestration never issues raw SQL.
 - `app/orchestration/specialist_runner.py`: one runtime for all 16 profiles. Builds
   the task envelope from the profile, composes the prompt, calls the specialist
   route, enforces the evidence policy and returns a typed outcome.
-- `scripts/generate_skills.py` + `openclaw/workspace/skills/neucleus-*/SKILL.md`:
+- `scripts/generate_skills.py` + `openclaw/workspace/skills/nucleus-*/SKILL.md`:
   16 OpenClaw skills **generated** from the registry, one per specialist. The body
   is exactly the prompt the runtime would send, so the two cannot diverge.
 
@@ -268,7 +268,7 @@ approval authorisation. It needs the operator's Slack member ID.
 
 **Tool skills (§19, D-013).** `app/tools/` exposes the calculator, evidence store,
 artifact store and project search through `python -m app.tools.cli`, wrapped by the
-`neucleus-tools` skill. Authorisation is resolved from the database by run and task —
+`nucleus-tools` skill. Authorisation is resolved from the database by run and task —
 the agent's identity is looked up, never taken from the caller — so a specialist
 cannot use a tool its profile does not carry, or write to another run. Refusal exits 2.
 

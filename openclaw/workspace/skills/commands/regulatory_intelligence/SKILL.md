@@ -1,6 +1,6 @@
 ---
 name: regulatory_intelligence
-description: Send one task directly to the Regulatory Intelligence Expert (A02) — the Neucleus specialist for Continuously monitor, interpret and apply global regulatory requirements and emerging expectations across.... Use when the user names this specialist with /regulatory_intelligence, or asks for this specialist by name.
+description: Send one task directly to the Regulatory Intelligence Expert (A02) — the Nucleus specialist for Continuously monitor, interpret and apply global regulatory requirements and emerging expectations across.... Use when the user names this specialist with /regulatory_intelligence, or asks for this specialist by name.
 metadata:
   short-description: Ask the Regulatory Intelligence Expert a single question
 ---
@@ -21,7 +21,7 @@ Continuously monitor, interpret and apply global regulatory requirements and eme
 ## How to launch
 
 ```bash
-cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
+cd "{{NUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
   --request "<the user's task, verbatim, without the slash command>" \
   --agent A02 \
   --channel "<slack channel id>" \

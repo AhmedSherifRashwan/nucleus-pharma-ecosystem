@@ -1,6 +1,6 @@
-"""Command-line entry point for the Neucleus tools (PRD s19, D-013).
+"""Command-line entry point for the Nucleus tools (PRD s19, D-013).
 
-Invoked by the `neucleus-tools` OpenClaw skill from inside a specialist turn.
+Invoked by the `nucleus-tools` OpenClaw skill from inside a specialist turn.
 Every call states its context and is authorised against the database before any
 work happens, so the implementation stays in Python exactly as s19 requires while
 OpenClaw sees only a skill.
@@ -29,7 +29,7 @@ from app.tools.context import ToolAuthorisationError, resolve_context
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="neucleus-tools", description=__doc__)
+    parser = argparse.ArgumentParser(prog="nucleus-tools", description=__doc__)
     sub = parser.add_subparsers(dest="tool", required=True)
 
     def with_context(p: argparse.ArgumentParser) -> argparse.ArgumentParser:

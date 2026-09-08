@@ -1,6 +1,6 @@
 ---
 name: quality_control
-description: Send one task directly to the Quality Control Expert (A13) — the Neucleus specialist for Govern laboratory quality control across raw materials, in-process, finished product, release and stability testing. Use when the user names this specialist with /quality_control, or asks for this specialist by name.
+description: Send one task directly to the Quality Control Expert (A13) — the Nucleus specialist for Govern laboratory quality control across raw materials, in-process, finished product, release and stability testing. Use when the user names this specialist with /quality_control, or asks for this specialist by name.
 metadata:
   short-description: Ask the Quality Control Expert a single question
 ---
@@ -21,7 +21,7 @@ Govern laboratory quality control across raw materials, in-process, finished pro
 ## How to launch
 
 ```bash
-cd "{{NEUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
+cd "{{NUCLEUS_ROOT}}" && uv run python scripts/enqueue_run.py \
   --request "<the user's task, verbatim, without the slash command>" \
   --agent A13 \
   --channel "<slack channel id>" \

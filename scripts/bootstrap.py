@@ -27,7 +27,7 @@ OPENCLAW_HOME = Path("~/.openclaw").expanduser()
 OPENCLAW_CONFIG = OPENCLAW_HOME / "openclaw.json"
 TEMPLATE = PROJECT_ROOT / "openclaw" / "setup" / "openclaw.template.json"
 LAUNCH_AGENTS = Path("~/Library/LaunchAgents").expanduser()
-WORKER_LABEL = "ai.neucleus.worker"
+WORKER_LABEL = "ai.nucleus.worker"
 
 # Substituted into the OpenClaw template. Each is a secret or an identifier the
 # new deployment supplies for itself.
@@ -305,7 +305,7 @@ def install_worker_service(report: Report, *, check: bool) -> None:
                 False,
                 f"cannot run from ~/{blocked}: macOS denies a launchd-spawned process "
                 f"access to it, whatever the file permissions say. Move the checkout "
-                f"outside ~/{blocked} (~/Neucleus, say) and rerun. Until then, start the "
+                f"outside ~/{blocked} (~/Nucleus, say) and rerun. Until then, start the "
                 f"worker by hand: uv run python -m app.worker",
             )
         )
@@ -374,11 +374,11 @@ def manual_steps(report: Report) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Set up the Neucleus ecosystem on this machine.")
+    parser = argparse.ArgumentParser(description="Set up the Nucleus ecosystem on this machine.")
     parser.add_argument("--check", action="store_true", help="report without changing anything")
     args = parser.parse_args()
 
-    print(f"Neucleus bootstrap — {PROJECT_ROOT}")
+    print(f"Nucleus bootstrap — {PROJECT_ROOT}")
     print("(dry run)" if args.check else "")
 
     report = Report()

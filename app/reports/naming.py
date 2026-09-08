@@ -91,7 +91,7 @@ def subject_from_request(request: str) -> str:
     subject = " ".join(kept).strip(" -/")
     if len(subject) > MAX_CHARS:
         subject = subject[:MAX_CHARS].rsplit(" ", 1)[0]
-    return subject or "Neucleus Analysis"
+    return subject or "Nucleus Analysis"
 
 
 def document_name(project_name: str | None, user_request: str) -> str:

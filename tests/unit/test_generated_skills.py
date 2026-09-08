@@ -33,7 +33,7 @@ def test_skill_frontmatter_is_well_formed(registry):
         assert lines[0] == "---"
         closing = lines.index("---", 1)
         front = "\n".join(lines[1:closing])
-        assert f"name: neucleus-{profile.slug}" in front
+        assert f"name: nucleus-{profile.slug}" in front
         assert f"agent-id: {profile.id}" in front
         assert f"profile-version: {profile.version}" in front
         assert f"status: {profile.status}" in front
@@ -66,7 +66,7 @@ def test_skill_body_is_the_composed_specialist_prompt(registry):
         assert "<operating_persona>" in text
         assert "UNTRUSTED DATA" in text
         assert "MUST carry at least one evidence reference" in text
-        assert "Neucleus" in text
+        assert "Nucleus" in text
 
 
 def test_framework_scoped_skills_say_where_their_scope_ends(registry):
@@ -81,7 +81,7 @@ def test_no_stale_skill_directories(registry):
     """Only generated directories are managed; hand-written ones are left alone."""
     expected = {skill_dir(p).name for p in registry.all_profiles()}
     generated = set()
-    for d in SKILLS_ROOT.glob("neucleus-*"):
+    for d in SKILLS_ROOT.glob("nucleus-*"):
         f = d / "SKILL.md"
         if d.is_dir() and f.is_file() and "GENERATED FILE" in f.read_text():
             generated.add(d.name)

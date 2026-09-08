@@ -33,7 +33,7 @@ GENERATOR_VERSION = "1.0.0"
 TEMPLATE_VERSION = "builtin-1.0.0"
 
 DISCLAIMER = (
-    "This report contains AI-generated analysis produced by the Neucleus "
+    "This report contains AI-generated analysis produced by the Nucleus "
     "ecosystem to support a human decision. It is not a regulatory approval, a "
     "GMP release, a validated state, a compliance sign-off, or legal advice. "
     "Every material conclusion must be reviewed by a qualified person before it "

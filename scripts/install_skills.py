@@ -1,10 +1,10 @@
-"""Install the Neucleus skills into the OpenClaw agent workspaces (PRD s7, s11).
+"""Install the Nucleus skills into the OpenClaw agent workspaces (PRD s7, s11).
 
 Skills live in this repository so they are versioned and reviewed with the code
 that backs them. OpenClaw loads them from an agent's `<workspace>/skills`, so they
 have to be installed there.
 
-Commands inside a skill run wherever the agent happens to be, so `{{NEUCLEUS_ROOT}}`
+Commands inside a skill run wherever the agent happens to be, so `{{NUCLEUS_ROOT}}`
 is rendered to this checkout's absolute path at install time. The repository copy
 stays portable; the installed copy is concrete.
 """
@@ -18,7 +18,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SOURCE = PROJECT_ROOT / "openclaw" / "workspace" / "skills"
-PLACEHOLDER = "{{NEUCLEUS_ROOT}}"
+PLACEHOLDER = "{{NUCLEUS_ROOT}}"
 
 OPENCLAW_HOME = Path("~/.openclaw").expanduser()
 
@@ -29,22 +29,22 @@ OPENCLAW_HOME = Path("~/.openclaw").expanduser()
 TARGETS: dict[str, tuple[Path, tuple[str, ...], tuple[str, ...]]] = {
     # The dedicated front door: the ecosystem is all it does, so a person never
     # has to ask for it by name.
-    "neucleus": (
-        OPENCLAW_HOME / "workspaces" / "neucleus" / "skills",
-        ("pharma-ecosystem", "neucleus-approvals", "commands"),
+    "nucleus": (
+        OPENCLAW_HOME / "workspaces" / "nucleus" / "skills",
+        ("pharma-ecosystem", "nucleus-approvals", "commands"),
         (),
     ),
     "main": (
         OPENCLAW_HOME / "workspace" / "skills",
         # `commands` holds one generated skill per specialist, so /qtpp and the
         # rest reach the Slack-facing agent as slash commands.
-        ("pharma-ecosystem", "neucleus-approvals", "commands"),
+        ("pharma-ecosystem", "nucleus-approvals", "commands"),
         (),
     ),
     "pharma-specialist": (
         OPENCLAW_HOME / "workspaces" / "pharma-specialist" / "skills",
-        ("neucleus-*",),
-        ("neucleus-approvals",),
+        ("nucleus-*",),
+        ("nucleus-approvals",),
     ),
 }
 
@@ -76,8 +76,8 @@ def render(text: str) -> str:
 
 # The front-door agent's standing instructions live in the repository, so what it
 # will and will not do is reviewed with the code rather than edited in place.
-AGENT_INSTRUCTIONS = PROJECT_ROOT / "openclaw" / "workspace" / "agent-neucleus"
-AGENT_WORKSPACE = OPENCLAW_HOME / "workspaces" / "neucleus"
+AGENT_INSTRUCTIONS = PROJECT_ROOT / "openclaw" / "workspace" / "agent-nucleus"
+AGENT_WORKSPACE = OPENCLAW_HOME / "workspaces" / "nucleus"
 
 
 def install_agent_instructions(*, check: bool) -> None:
@@ -89,11 +89,11 @@ def install_agent_instructions(*, check: bool) -> None:
         if target.is_file() and target.read_text() == content:
             continue
         if check:
-            print(f"  - neucleus/{source.name} (out of date)", file=sys.stderr)
+            print(f"  - nucleus/{source.name} (out of date)", file=sys.stderr)
             continue
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content)
-        print(f"neucleus: {source.name} -> {target}")
+        print(f"nucleus: {source.name} -> {target}")
 
 
 def install_one(source: Path, destination: Path, *, check: bool) -> bool:
@@ -123,7 +123,7 @@ def install_one(source: Path, destination: Path, *, check: bool) -> bool:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Install Neucleus skills into OpenClaw.")
+    parser = argparse.ArgumentParser(description="Install Nucleus skills into OpenClaw.")
     parser.add_argument(
         "--check", action="store_true", help="report drift without writing anything"
     )
@@ -152,13 +152,13 @@ def main() -> int:
             if not up_to_date:
                 drifted.append(f"{agent}/{source.name}")
 
-        # Remove installed Neucleus skills that no longer exist in the repository.
+        # Remove installed Nucleus skills that no longer exist in the repository.
         names = {s.name for s in sources}
         if workspace_skills.is_dir():
             for existing in workspace_skills.iterdir():
                 if not existing.is_dir() or existing.name in names:
                     continue
-                if not (existing.name.startswith(("neucleus-", "pharma-"))):
+                if not (existing.name.startswith(("nucleus-", "pharma-"))):
                     continue
                 drifted.append(f"{agent}/{existing.name} (stale)")
                 if not args.check:

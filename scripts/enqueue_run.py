@@ -1,4 +1,4 @@
-"""Create and enqueue a Neucleus run (PRD s30, s31.2, Phase 9).
+"""Create and enqueue a Nucleus run (PRD s30, s31.2, Phase 9).
 
 Called by the OpenClaw pharma-ecosystem skill. Deliberately narrow: validate the
 request envelope, map the Slack thread to a project, create the run and job, and
@@ -178,7 +178,7 @@ async def enqueue(
 
 
 async def main() -> int:
-    parser = argparse.ArgumentParser(description="Enqueue a Neucleus run.")
+    parser = argparse.ArgumentParser(description="Enqueue a Nucleus run.")
     parser.add_argument("--request", required=True, help="the user's request, verbatim")
     parser.add_argument("--channel", help="Slack channel id")
     parser.add_argument("--thread", help="Slack thread timestamp")

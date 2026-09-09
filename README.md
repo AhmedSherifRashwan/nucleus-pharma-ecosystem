@@ -21,6 +21,25 @@ Around thirty minutes, most of it downloads. Two steps need a browser and cannot
 automated: subscription auth belongs to a person on a device, which is why this runs
 on a Mac rather than a server.
 
+### Offline, on a USB stick
+
+No network on the new machine? One command writes everything needed:
+
+```bash
+uv run python scripts/usb_kit.py create --to /Volumes/<STICK>
+```
+
+That is the repository with its full history as a git bundle, the data as a verified
+archive, and a `SETUP.txt` with the steps. Add `--include-env` to carry the `.env`
+too — the stick then holds your database password and gateway token, so keep track
+of it.
+
+**Copying `~/Nucleus` to a stick does not move this system.** The database lives in
+PostgreSQL's own data directory, not in the project; the gateway's agents and
+workspaces live under `~/.openclaw`; and `.venv` holds absolute paths that mean
+nothing on another machine. A folder copy preserves the source — which git already
+preserves, better — and silently leaves the database behind.
+
 ### Before you start, on the old machine
 
 ```bash

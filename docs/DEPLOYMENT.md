@@ -59,6 +59,21 @@ uv run python scripts/health_check.py
 
 Then `openclaw dashboard`, select the **nucleus** agent, and ask it something.
 
+## Settings this deployment changed
+
+`.env.example` ships the PRD's defaults. Three differ here, and a new machine
+reproduces this one's behaviour only if you set them:
+
+```bash
+DEFAULT_MAX_SPECIALISTS=8        # example ships 6 (PRD s22)
+REPORT_COMPOSER_ROUTE=specialist # example ships executive; report writing on the
+                                 # Claude route keeps it off the planner's quota
+SLACK_APPROVER_IDS=              # only if Slack is used; the Control UI needs none
+```
+
+`OPENCLAW_TIMEOUT_SECONDS=900` and `DEFAULT_MAX_RUNTIME_SECONDS=3600` are already in
+the example: report-length specialist work overran the shipped 300s and 1200s.
+
 ## Check the model before the first run
 
 A new ChatGPT account may not support the model the executive agent is pinned to.

@@ -612,3 +612,27 @@ to judge whether the right specialists were chosen.
 assigned, what it must produce, and what it waits for. The skill is instructed to
 print that list before asking for approval. A person asked to approve nine
 workstreams is entitled to see the nine.
+
+
+### D-033 · Backup carries data, never secrets — and a restore is verified
+`scripts/backup.py` writes one archive holding the database dump, every artifact and
+ingested document, and a manifest recording the git commit, row counts and a
+checksum over the dump. Restore checks the dump against that checksum before
+touching anything, and checks the restored row counts against the manifest
+afterwards. A restore that silently produced an empty database would be the worst
+possible outcome for an audit trail, so it is verified at both ends.
+
+It refuses to restore over a database that already holds data. Merging two
+histories into one audit trail would make the record describe work that never
+happened; `--force` overwrites deliberately.
+
+Secrets are never in the archive. A backup carrying credentials is a credential you
+have lost track of.
+
+*Two defects the verification caught, both in the migration path rather than the
+backup:* `pg_restore`'s failure was being logged and swallowed, leaving an empty
+database that looked restored — it now raises with the reason. And the databases must
+be owned by the role in `DATABASE_URL`: PostgreSQL 15 removed the public schema's
+default write permission, so a database created by one role and used by another fails
+with *permission denied for schema public*. `bootstrap.py` now creates them with `-O`
+and creates the role when missing.

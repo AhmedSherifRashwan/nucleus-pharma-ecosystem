@@ -147,6 +147,23 @@ def values_from_existing_gateway() -> dict[str, str]:
     return {k: v for k, v in found.items() if isinstance(v, str) and v}
 
 
+def database_owner() -> str | None:
+    """The role in DATABASE_URL, which must own the databases it connects to.
+
+    PostgreSQL 15 removed the public schema's default write permission, so a
+    database created by one role and used by another cannot be written to — and a
+    restore into it fails with "permission denied for schema public".
+    """
+    env = PROJECT_ROOT / ".env"
+    if not env.is_file():
+        return None
+    for line in env.read_text().splitlines():
+        if line.startswith("DATABASE_URL="):
+            credentials = line.split("://", 1)[-1].rpartition("@")[0]
+            return credentials.partition(":")[0] or None
+    return None
+
+
 def database_names() -> tuple[str, str]:
     env = PROJECT_ROOT / ".env"
     url = ""
@@ -164,15 +181,26 @@ def setup_database(report: Report, *, check: bool) -> None:
         report.add(Step("databases", False, "psql not available"))
         return
 
+    owner = database_owner()
     existing = run(["psql", "-tAc", "SELECT datname FROM pg_database", "postgres"]).stdout.split()
     for name in database_names():
         if name in existing:
             report.add(Step(f"database {name}", True, "exists"))
             continue
         if check:
-            report.add(Step(f"database {name}", False, "would be created"))
+            report.add(
+                Step(f"database {name}", False, f"would be created, owned by {owner or 'you'}")
+            )
             continue
-        created = run(["createdb", name])
+        if (
+            owner
+            and owner
+            not in run(["psql", "-tAc", "SELECT rolname FROM pg_roles", "postgres"]).stdout.split()
+        ):
+            role = run(["createuser", "--createdb", owner])
+            if role.returncode != 0:
+                report.add(Step(f"role {owner}", False, role.stderr.strip()[:120]))
+        created = run(["createdb", *(["-O", owner] if owner else []), name])
         report.add(
             Step(
                 f"database {name}",

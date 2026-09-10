@@ -261,11 +261,22 @@ def configure_openclaw(report: Report, values: dict[str, str], *, check: bool) -
         return
 
     if OPENCLAW_CONFIG.is_file():
-        # An existing gateway is left alone: overwriting it would discard whatever
-        # the operator has since configured by hand.
-        report.add(
-            Step("gateway config", True, f"already present at {OPENCLAW_CONFIG}; left untouched")
-        )
+        # A machine that has been onboarded already has a config, with its own
+        # tokens and channels. Overwriting it would discard those; skipping it
+        # entirely would leave the ecosystem's agents missing. So merge: add what
+        # is absent, change nothing that is present.
+        added = merge_into_existing(json.loads(rendered), check=check)
+        if added:
+            report.add(
+                Step(
+                    "gateway config",
+                    not check,
+                    ("would add " if check else "added ") + ", ".join(added),
+                    changed=not check,
+                )
+            )
+        else:
+            report.add(Step("gateway config", True, "agents and plugins already present"))
         return
     if check:
         report.add(Step("gateway config", False, f"would write {OPENCLAW_CONFIG}"))
@@ -275,6 +286,52 @@ def configure_openclaw(report: Report, values: dict[str, str], *, check: bool) -
     OPENCLAW_CONFIG.write_text(json.dumps(json.loads(rendered), indent=2) + "\n")
     OPENCLAW_CONFIG.chmod(0o600)
     report.add(Step("gateway config", True, f"wrote {OPENCLAW_CONFIG}", changed=True))
+
+
+def merge_into_existing(template: dict, *, check: bool) -> list[str]:
+    """Add the ecosystem's agents and plugins to a config that already exists.
+
+    Only additions. An existing value is never replaced, because the things most
+    likely to differ - the gateway token, channel credentials, the operator's own
+    agents - are exactly the things that must survive.
+    """
+    live = json.loads(OPENCLAW_CONFIG.read_text())
+    added: list[str] = []
+
+    entries = live.setdefault("agents", {}).setdefault("entries", {})
+    for name, definition in (template.get("agents", {}).get("entries", {}) or {}).items():
+        if name not in entries:
+            entries[name] = definition
+            added.append(f"agent {name}")
+
+    # The specialist route needs its models mapped to the claude-cli runtime.
+    defaults = live.setdefault("agents", {}).setdefault("defaults", {})
+    models = defaults.setdefault("models", {})
+    for model, definition in (
+        template.get("agents", {}).get("defaults", {}).get("models", {}) or {}
+    ).items():
+        if model not in models:
+            models[model] = definition
+            added.append(f"model {model}")
+
+    plugins = live.setdefault("plugins", {}).setdefault("entries", {})
+    for plugin, definition in (template.get("plugins", {}).get("entries", {}) or {}).items():
+        if plugin not in plugins:
+            plugins[plugin] = definition
+            added.append(f"plugin {plugin}")
+
+    # Slash commands for the specialists only work with this on, and it is off for
+    # Slack by default.
+    slack = live.get("channels", {}).get("slack")
+    if isinstance(slack, dict) and not slack.get("commands", {}).get("nativeSkills"):
+        slack.setdefault("commands", {})["nativeSkills"] = True
+        added.append("slack native skill commands")
+
+    if added and not check:
+        backup = OPENCLAW_CONFIG.with_suffix(".json.bak.pre-merge")
+        shutil.copy2(OPENCLAW_CONFIG, backup)
+        OPENCLAW_CONFIG.write_text(json.dumps(live, indent=2) + "\n")
+    return added
 
 
 def install_skills(report: Report, *, check: bool) -> None:
